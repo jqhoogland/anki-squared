@@ -1,25 +1,48 @@
 import os
 
 from flask import Flask
-from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
-
-from config import Config
 
 # create and configure the app
-app = Flask(__name__, instance_relative_config=True)
-app.config.from_object(Config)
+# app = Flask(__name__, instance_relative_config=True)
 
-# Enable CORS because this is an API
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+# @app.shell_context_processor
+# def make_shell_context():
+#     from models import Note
+#     return {'db': db, 'Note': Note}
 
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
 
-@app.shell_context_processor
-def make_shell_context():
-    from models import Note
-    return {'db': db, 'Note': Note}
+def setup_app(app):
+    from flask_migrate import Migrate
+    from flask_cors import CORS
 
-from . import routes, models
+    from models import db
+    from config import Config
+
+    app.config.from_object(Config)
+    db.init_app(app)
+
+    migrate = Migrate(app, db)
+
+    # Enable CORS because this is an API
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+
+    @app.route("/")
+    def index():
+        return "Ciao mondo"
+
+
+def create_app():
+    from routes import api_resources, api_queue, api_notes
+
+    app = Flask(__name__)
+
+    setup_app(app)
+
+
+
+    app.register_blueprint(api_resources)
+    app.register_blueprint(api_queue)
+    app.register_blueprint(api_notes)
+
+    return app

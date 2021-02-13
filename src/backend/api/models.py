@@ -1,7 +1,11 @@
 from datetime import datetime
 
-from api import db
-from resources import get_definition, get_pronunciations, save_audio_from_url
+from flask_sqlalchemy import SQLAlchemy
+
+from resources import get_definition, get_pronunciations
+
+db = SQLAlchemy()
+
 
 pronunciations = db.Table('pronunciations_to_notes_table',
     db.Column('pronunciation_id', db.Integer, db.ForeignKey('pronunciation.id'), primary_key=True),

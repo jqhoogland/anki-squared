@@ -1,28 +1,32 @@
 import json, logging
 
-from flask import escape, request, make_response
+from flask import escape, request, make_response, Blueprint
 
-from api import app, db
-from models import Note
+from models import Note, db
 from services import create_note, get_duckduckgo_images, get_forvo_pronunciations, get_wiktionary_definitions
 
-@app.route('/api/images', methods=['POST'])
+api_resources = Blueprint(__name__, 'resources', url_prefix='/api/resources')
+
+@api_resources.route('/images', methods=['POST'])
 def get_images():
     word = json.loads(request.get_data())
     res = {"images": get_duckduckgo_images(word)[:10]}
     return res
 
-@app.route('/api/pronunciations/', methods=['POST'])
+@api_resources.route('/pronunciations', methods=['POST'])
 def get_pronunciations():
     word = json.loads(request.get_data())
     return {"pronunciations": get_forvo_pronunciations(word)}
 
-@app.route('/api/definitions/', methods=['POST'])
+@api_resources.route('/definitions', methods=['POST'])
 def get_definitions():
     word = json.loads(request.get_data())
     return {"definitions": get_wiktionary_definitions(word)}
 
-@app.route('/api/queue/add', methods=['POST'])
+
+api_queue = Blueprint(__name__, "queue", url_prefix="/api/queue")
+
+@api_queue.route('/add', methods=['POST'])
 def add_new_word_to_queue():
     word_str = json.loads(request.get_data())['word']
     word = Note(word=word_str)
@@ -31,11 +35,14 @@ def add_new_word_to_queue():
 
     return "", 200
 
-@app.route('/api/queue', methods=['POST', 'GET'])
+
+@api_queue.route('', methods=['POST', 'GET'])
 def get_queue():
     return {'queue': [note.to_json() for note in Note.query.all()]}
 
-@app.route('/api/note/<int:note_idx>/edit', methods=['POST'])
+api_notes = Blueprint(__name__, "notes", url_prefix="/api/notes")
+
+@api_notes.route('/edit/<int:note_idx>', methods=['POST'])
 def edit_note(note_idx):
     new_note = json.loads(request.get_data())
     Note.query.all()[note_idx].update(**new_note)
@@ -44,7 +51,7 @@ def edit_note(note_idx):
     return "", 200
 
 
-@app.route('/api/note/<int:note_idx>', methods=['GET'])
+@api_notes.route('/<int:note_idx>', methods=['GET'])
 def get_note(note_idx):
     notes = Note.query.all()
 
@@ -54,7 +61,7 @@ def get_note(note_idx):
     return {}
 
 
-@app.route('/api/upload', methods=['POST'])
+@api_notes.route('/upload', methods=['POST'])
 def upload_note():
     word = json.loads(request.get_data())
     res_code = 500
