@@ -1,5 +1,7 @@
 from wiktionaryparser import WiktionaryParser
 
+from .languages import get_language
+
 def get_wiktionary_definitions(query):
     """
     :returns definitions: List of the kind
@@ -19,14 +21,15 @@ def get_wiktionary_definitions(query):
 
 
     """
+    language = get_language()
+
     parser = WiktionaryParser()
-    parser.set_default_language('italian')
+    parser.set_default_language(language)
 
     definition = ""
-    definitions_raw = parser.fetch(query, "italian")
+    definitions_raw = parser.fetch(query, language)
 
-    #definitions = []
-
+    # TODO: account for different languages possibly returning different shapes
     # TODO: collect all definitions together and use not only the first one
     definitions = definitions_raw[0]
 

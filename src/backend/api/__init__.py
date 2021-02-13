@@ -2,14 +2,6 @@ import os
 
 from flask import Flask
 
-# create and configure the app
-# app = Flask(__name__, instance_relative_config=True)
-
-# @app.shell_context_processor
-# def make_shell_context():
-#     from models import Note
-#     return {'db': db, 'Note': Note}
-
 
 def setup_app(app):
     from flask_migrate import Migrate
@@ -26,7 +18,6 @@ def setup_app(app):
     # Enable CORS because this is an API
     CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-
     @app.route("/")
     def index():
         return "Ciao mondo"
@@ -38,8 +29,6 @@ def create_app():
     app = Flask(__name__)
 
     setup_app(app)
-
-
 
     app.register_blueprint(api_resources)
     app.register_blueprint(api_queue)
