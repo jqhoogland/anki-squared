@@ -4,8 +4,7 @@ from flask import escape, request, make_response
 
 from api import app, db
 from models import Note
-from services import create_note, get_duckduckgo_images, get_forvo_pronunciations
-
+from services import create_note, get_duckduckgo_images, get_forvo_pronunciations, get_wiktionary_definitions
 
 @app.route('/api/images', methods=['POST'])
 def get_images():
@@ -13,10 +12,15 @@ def get_images():
     res = {"images": get_duckduckgo_images(word)[:10]}
     return res
 
-@app.route('/api/pronunciations/', methods=['GET'])
+@app.route('/api/pronunciations/', methods=['POST'])
 def get_pronunciations():
     word = json.loads(request.get_data())
-    return {"images": get_forvo_pronunciations(word)}
+    return {"pronunciations": get_forvo_pronunciations(word)}
+
+@app.route('/api/definitions/', methods=['POST'])
+def get_definitions():
+    word = json.loads(request.get_data())
+    return {"definitions": get_wiktionary_definitions(word)}
 
 @app.route('/api/queue/add', methods=['POST'])
 def add_new_word_to_queue():

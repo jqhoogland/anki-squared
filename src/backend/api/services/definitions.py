@@ -1,6 +1,6 @@
 from wiktionaryparser import WiktionaryParser
 
-def get_wiktionary_definition(query):
+def get_wiktionary_definitions(query):
     """
     :returns definitions: List of the kind
 
