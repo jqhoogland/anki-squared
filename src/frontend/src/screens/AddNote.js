@@ -22,7 +22,7 @@ import {
 
 import { FaPlay, FaStop } from "react-icons/fa"
 
-import { getImages, editNote, getNote } from "./services/api"
+import { getImages, editNote, getNote } from "../services/api"
 
 const ClickToEdit = (props) => {
   const [edit, setEdit] = useState(false)

@@ -14,9 +14,9 @@ def add_new_word_to_queue():
     db.session.add(word)
     db.session.commit()
 
-    return "", 200
+    return {'queue': [note.to_json() for note in Note.query.all()]}, 200
 
 
 @api_queue.route('', methods=['POST', 'GET'])
 def get_queue():
-    return {'queue': [note.to_json() for note in Note.query.all()]}
+    return {'queue': [note.to_json() for note in Note.query.all()]}, 200

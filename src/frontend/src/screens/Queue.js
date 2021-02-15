@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react"
 
 import {
   Row,
@@ -9,7 +9,9 @@ import {
   InputGroup,
   Input,
   InputGroupAddon,
-} from "reactstrap";
+} from "reactstrap"
+
+import { getQueue, addToQueue } from "../services/api.js"
 
 function QueueList({ words }) {
   return (
@@ -22,43 +24,50 @@ function QueueList({ words }) {
         </Row>
       ))}
     </Container>
-  );
+  )
 }
 
 export default function Queue(props) {
-  const [queue, setQueue] = useState([]);
-  const [word, setWord] = useState("");
-  const [wordAdded, setWordAdded] = useState("");
+  const [queue, setQueue] = useState([])
+  const [word, setWord] = useState("")
 
+  // Load the queue on mount
   useEffect(() => {
-    fetch(`/api/queue`)
-      .then((res) => res.json())
-      .then((data) => setQueue(data.queue));
-  }, [wordAdded]);
+    getQueue().then((data) => setQueue(data.queue))
+  }, [])
 
+  // We get the queue back whenever we add new words
   const newWord = () => {
-    setWordAdded(true);
-    fetch("/api/queue/add", {
-      method: "POST",
-      body: JSON.stringify({ word }),
-    }).then((res) => {
-      if (res.status == 200) {
-        setWord("");
+    addToQueue(word).then((res) => {
+      if (res.queue) {
+        setQueue(res.queue)
+        setWord("")
       }
-      setWordAdded(false);
-    });
-  };
+    })
+  }
 
+  // Return key triggers add to queue.
   const handleKeyDown = (e) => {
     if (e.keyCode == 13) {
       // Enter
-      newWord();
+      e.preventDefault()
+      newWord()
     }
-  };
+  }
 
   return (
     <Container>
-      <QueueList words={queue} />
+      <Container>
+        {queue.map((q, i) => (
+          <Row>
+            <a href={`/note/${i}`}>
+              <h2 key={`key-${i}`}>
+                {i}. {q.word}
+              </h2>
+            </a>
+          </Row>
+        ))}
+      </Container>
       <Row>
         <Form>
           <InputGroup>
@@ -74,5 +83,5 @@ export default function Queue(props) {
         </Form>
       </Row>
     </Container>
-  );
+  )
 }

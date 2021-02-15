@@ -28,3 +28,12 @@ export const editNote = (noteIdx, note) =>
 
 export const getNote = async (noteIdx) =>
   fetch(`/api/notes/${noteIdx}`).then((res) => res.json())
+
+export const addToQueue = async (word) =>
+  fetch("/api/queue/add", {
+    method: "POST",
+    body: JSON.stringify({ word }),
+  }).then((res) => res.json())
+
+export const getQueue = async () =>
+  fetch(`/api/queue`).then((res) => res.json())
