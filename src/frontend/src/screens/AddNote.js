@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react"
 
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router-dom"
 
 import {
   Alert,
@@ -18,40 +18,42 @@ import {
   FormGroup,
   Input,
   Label,
-} from "reactstrap";
+} from "reactstrap"
 
-import { FaPlay, FaStop } from "react-icons/fa";
+import { FaPlay, FaStop } from "react-icons/fa"
+
+import { getImages, editNote, getNote } from "./services/api"
 
 const ClickToEdit = (props) => {
-  const [edit, setEdit] = useState(false);
-  const [value, setValue] = useState(props.value);
-  let res;
+  const [edit, setEdit] = useState(false)
+  const [value, setValue] = useState(props.value)
+  let res
 
   if (props.value !== value) {
-    setValue(props.value);
-    setEdit(false);
+    setValue(props.value)
+    setEdit(false)
   }
 
   const changeHandler = (e) => {
-    setValue(e.target.value);
-    props.setValue(e.target.value);
-  };
+    setValue(e.target.value)
+    props.setValue(e.target.value)
+  }
 
   if (edit) {
     res = (
       <Input type="textarea" defaultValue={value} onChange={changeHandler} />
-    );
+    )
   } else {
-    res = <h1 onClick={() => setEdit(true)}>{value}</h1>;
+    res = <h1 onClick={() => setEdit(true)}>{value}</h1>
   }
 
-  return res;
-};
+  return res
+}
 
 const Pronunciation = (props) => {
-  const chosen = props.isSelected === props.value;
+  const chosen = props.isSelected === props.value
 
-  let audioProps = props.isSelected ? { autoplay: true } : {};
+  let audioProps = props.isSelected ? { autoplay: true } : {}
   return (
     <Card
       onClick={props.onClick}
@@ -70,11 +72,11 @@ const Pronunciation = (props) => {
         </Col>
       </Row>
     </Card>
-  );
-};
+  )
+}
 
 const ImgChoice = (props) => {
-  const chosen = props.isSelected === props.value;
+  const chosen = props.isSelected === props.value
 
   return (
     <Card
@@ -85,30 +87,8 @@ const ImgChoice = (props) => {
     >
       <CardImg src={props.item.image} alt={props.item.title} />
     </Card>
-  );
-};
-
-const getImages = (keyword) => {
-  const request = new Request("/api/images", {
-    method: "POST",
-    mode: "no-cors",
-    body: JSON.stringify(keyword),
-    headers: new Headers({
-      "Content-Type": "application/json",
-    }),
-  });
-
-  fetch(request)
-    .then((res) => {
-      console.log("images", res);
-      // if (!res.ok) { throw res }
-      // TODO: allow opaque requests
-    })
-    .then((res) => console.log("success"))
-    .catch((e) => {
-      console.error(e);
-    });
-};
+  )
+}
 
 export default function AddNote() {
   const [note, setNoteLocal] = useState({
@@ -120,37 +100,32 @@ export default function AddNote() {
     is_marked: false,
     word_type: "none",
     is_graduated: false,
-  });
-  const [alert, setAlert] = useState("");
+  })
+  const [alert, setAlert] = useState("")
 
-  const setNote = (note) => {
-    setNoteLocal(note);
-    fetch(`/api/note/${noteIdx}/edit`, {
-      method: "POST",
-      body: JSON.stringify(note),
-    });
-    console.log(note);
-  };
-
-  const setWord = (word) => setNote({ ...note, word });
+  const setWord = (word) => setNote({ ...note, word })
   const toggleIsIncludeRecognition = () =>
-    setNote({ ...note, is_include_recognition: !note.is_include_recognition });
-  const toggleIsMarked = () => setNote({ ...note, is_marked: !note.is_marked });
-  const setWordType = (wordType) => setNote({ ...note, word_type: wordType });
+    setNote({ ...note, is_include_recognition: !note.is_include_recognition })
+  const toggleIsMarked = () => setNote({ ...note, is_marked: !note.is_marked })
+  const setWordType = (wordType) => setNote({ ...note, word_type: wordType })
 
-  let { noteIdx } = useParams();
+  let { noteIdx } = useParams()
 
   useEffect(() => {
-    fetch(`/api/note/${noteIdx}`)
-      .then((res) => res.json())
-      .then(setNoteLocal);
+    getNote(noteIdx).then(setNoteLocal)
 
-    console.log(note);
-  }, []);
+    console.log(note)
+  }, [])
+
+  const setNote = (note) => {
+    setNoteLocal(note)
+    editNote(noteIdx, note)
+    console.log(note)
+  }
 
   const clickHandler = () => {
-    console.log("NEXT");
-  };
+    console.log("NEXT")
+  }
 
   return (
     <Container className="App p-5">
@@ -263,5 +238,5 @@ export default function AddNote() {
       <hr />
       <Button onClick={clickHandler}>Next</Button>
     </Container>
-  );
+  )
 }

@@ -1,13 +1,13 @@
-import React from "react";
+import React from "react"
 import {
   BrowserRouter as Router,
   Switch,
   Route,
   Link,
   Redirect,
-} from "react-router-dom";
-import AddNote from "./AddNote";
-import Queue from "./Queue";
+} from "react-router-dom"
+import AddNote from "./AddNote"
+import Queue from "./Queue"
 
 export default function App() {
   return (
@@ -39,5 +39,5 @@ export default function App() {
         </Switch>
       </div>
     </Router>
-  );
+  )
 }
