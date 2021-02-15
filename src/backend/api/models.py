@@ -2,7 +2,7 @@ from datetime import datetime
 
 from flask_sqlalchemy import SQLAlchemy
 
-from resources import get_definition, get_pronunciations
+from services import get_wiktionary_definitions, get_forvo_pronunciations
 
 db = SQLAlchemy()
 
@@ -63,8 +63,8 @@ class Note(db.Model):
         """
 
         """
-        definition = get_definition(word)
-        pronunciations_kwargs = get_pronunciations(word)
+        definition = get_wiktionary_definitions(word)
+        pronunciations_kwargs = get_forvo_pronunciations(word)
 
         for pronunciation_kwargs in pronunciations_kwargs:
             # p = Pronunciation(note=self, **pronunciation_kwargs)
