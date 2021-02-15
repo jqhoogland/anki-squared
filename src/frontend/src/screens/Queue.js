@@ -56,19 +56,17 @@ export default function Queue(props) {
   }
 
   return (
-    <Container>
-      <Container>
+    <Container style={{ marginBottom: 200 }}>
+      <h2>Queue</h2>
+      <ol style={{ marginTop: 30 }}>
         {queue.map((q, i) => (
-          <Row>
-            <a href={`/note/${i}`}>
-              <h2 key={`key-${i}`}>
-                {i}. {q.word}
-              </h2>
-            </a>
-          </Row>
+          <li key={`key-${i}`}>
+            <a href={`/note/${i}`}>{q.word}</a>
+          </li>
         ))}
-      </Container>
-      <Row>
+      </ol>
+
+      <Row style={{ marginTop: 50 }}>
         <Form>
           <InputGroup>
             <Input
