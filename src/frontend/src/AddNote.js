@@ -22,7 +22,7 @@ import {
 
 import { FaPlay, FaStop } from "react-icons/fa"
 
-import { getImages, editNote, getNote } from "../services/api"
+import { getImages, editNote, getNote } from "./services/api"
 
 const ClickToEdit = (props) => {
   const [edit, setEdit] = useState(false)
@@ -128,123 +128,115 @@ export default function AddNote() {
   }
 
   return (
-    <div>
-      <Container className="App pb-5">
-        {alert ? (
-          <Alert color="danger" toggle={() => setAlert("")}>
-            {alert}
-          </Alert>
-        ) : (
-          ""
-        )}
+    <Container className="App p-5">
+      {alert ? (
+        <Alert color="danger" toggle={() => setAlert("")}>
+          {alert}
+        </Alert>
+      ) : (
+        ""
+      )}
+      <Row>
+        <Col>
+          <Container className="p-5">
+            <h2>Word</h2>
+            <ClickToEdit value={note.word} setValue={setWord} />
+          </Container>
+        </Col>
+        <Col>
+          <Container className="p-5">
+            <h2>Definition</h2>
+            <h4>{note.definition}</h4>
+          </Container>
+        </Col>
+      </Row>
 
-        <h4>Word</h4>
-        <Input
-          type="textarea"
-          defaultValue={note.word}
-          onChange={(e) => setWord(e.target.value)}
-        />
-        <h4 className="pt-3">Definition</h4>
-        <Input
-          type="textarea"
-          rows={5}
-          defaultValue={note.definition}
-          onChange={(e) => e.preventDefault()}
-        />
+      <Row>
+        <Col className="col-md-6">
+          <h2>Image</h2>
+          <CardColumns className="my-3">{note.images}</CardColumns>
+        </Col>
+        <Col className="col-md-6">
+          <h2>Pronunciation</h2>
+          <CardDeck className="my-3">{note.pronunciations}</CardDeck>
+        </Col>
+      </Row>
 
-        <h4 className="pt-3">Image</h4>
-        <h4 className="pt-3">Pronunciation</h4>
-        <CardDeck className="my-3">{note.pronunciations}</CardDeck>
-        <h4 className="pt-3">Word Type</h4>
-        <Container>
-          <Form>
-            <FormGroup tag="fieldset">
-              <FormGroup check>
-                <Label check>
-                  <Input
-                    type="radio"
-                    name="radio1"
-                    defaultChecked={note.word_type === "none"}
-                    onClick={() => setWordType("none")}
-                  />
-                  Nessuna
-                </Label>
-              </FormGroup>
-              <Label check>
-                <Input
-                  type="radio"
-                  name="radio1"
-                  defaultChecked={note.word_type === "noun"}
-                  onClick={() => setWordType("noun")}
-                />
-                Sostantivo
-              </Label>
-            </FormGroup>
-            <FormGroup check>
-              <Label check>
-                <Input
-                  type="radio"
-                  name="radio1"
-                  defaultChecked={note.word_type === "adjective"}
-                  onClick={() => setWordType("adjective")}
-                />
-                Aggettivo
-              </Label>
-            </FormGroup>
-            <FormGroup check>
-              <Label check>
-                <Input
-                  type="radio"
-                  name="radio1"
-                  defaultChecked={note.word_type === "verb"}
-                  onClick={() => setWordType("verb")}
-                />
-                Verbo
-              </Label>
-            </FormGroup>
-          </Form>
-        </Container>
-        <hr />
-        <Row className="pt-5">
-          <Col className="col-md-4">
+      <hr />
+      <Row>
+        <Col>
+          <Container className="pb-5">
             <h4>Include Recognition?</h4>
-          </Col>
-          <Col>
             <Input
               type="checkbox"
               onClick={toggleIsIncludeRecognition}
               checked={note.is_include_recognition === true}
               style={{ width: "30px", height: "30px" }}
             />
-          </Col>
-        </Row>
-        <hr className="mt-5" />
-        <Row className="pt-3 pb-5">
-          <Col className="col-md-4">
+            <hr className="mt-5" />
             <h4>Mark</h4>
-          </Col>
-          <Col>
             <Input
               type="checkbox"
               onClick={toggleIsMarked}
               checked={note.is_marked === true}
               style={{ width: "30px", height: "30px" }}
             />
-          </Col>
-        </Row>
-      </Container>
-      <Container
-        style={{
-          position: "fixed",
-          bottom: 0,
-          right: 0,
-        }}
-        className="p-2"
-      >
-        <Button style={{ float: "right" }} onClick={clickHandler}>
-          Next
-        </Button>
-      </Container>
-    </div>
+          </Container>
+        </Col>
+        <Col>
+          <Container>
+            <h4>Word Type</h4>
+            <Form>
+              <FormGroup tag="fieldset">
+                <FormGroup check>
+                  <Label check>
+                    <Input
+                      type="radio"
+                      name="radio1"
+                      defaultChecked={note.word_type === "none"}
+                      onClick={() => setWordType("none")}
+                    />
+                    Nessuna
+                  </Label>
+                </FormGroup>
+                <Label check>
+                  <Input
+                    type="radio"
+                    name="radio1"
+                    defaultChecked={note.word_type === "noun"}
+                    onClick={() => setWordType("noun")}
+                  />
+                  Sostantivo
+                </Label>
+              </FormGroup>
+              <FormGroup check>
+                <Label check>
+                  <Input
+                    type="radio"
+                    name="radio1"
+                    defaultChecked={note.word_type === "adjective"}
+                    onClick={() => setWordType("adjective")}
+                  />
+                  Aggettivo
+                </Label>
+              </FormGroup>
+              <FormGroup check>
+                <Label check>
+                  <Input
+                    type="radio"
+                    name="radio1"
+                    defaultChecked={note.word_type === "verb"}
+                    onClick={() => setWordType("verb")}
+                  />
+                  Verbo
+                </Label>
+              </FormGroup>
+            </Form>
+          </Container>
+        </Col>
+      </Row>
+      <hr />
+      <Button onClick={clickHandler}>Next</Button>
+    </Container>
   )
 }
