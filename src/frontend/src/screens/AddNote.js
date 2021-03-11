@@ -127,6 +127,10 @@ export default function AddNote() {
     console.log("NEXT")
   }
 
+  const createNote = () => {
+    
+  }
+
   return (
     <div>
       <Container className="App pb-5">
@@ -241,6 +245,9 @@ export default function AddNote() {
         }}
         className="p-2"
       >
+        <Button style={{ float: "right" }} onClick={createNote}>
+          Submit
+        </Button>
         <Button style={{ float: "right" }} onClick={clickHandler}>
           Next
         </Button>

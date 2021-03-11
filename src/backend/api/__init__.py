@@ -24,7 +24,7 @@ def setup_app(app):
 
 
 def create_app():
-    from routes import api_resources, api_queue, api_notes
+    from routes import api_resources, api_queue, api_notes, api_decks
 
     app = Flask(__name__)
 
@@ -33,5 +33,6 @@ def create_app():
     app.register_blueprint(api_resources)
     app.register_blueprint(api_queue)
     app.register_blueprint(api_notes)
+    app.register_blueprint(api_decks)
 
     return app

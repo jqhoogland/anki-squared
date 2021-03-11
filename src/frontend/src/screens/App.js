@@ -7,6 +7,7 @@ import {
   Redirect,
 } from "react-router-dom"
 import AddNote from "./AddNote"
+import AddNote2 from "./AddNote2"
 import Queue from "./Queue"
 
 export default function App() {
@@ -35,6 +36,9 @@ export default function App() {
           </Route>
           <Route path="/note">
             <Redirect to="/note/0" />
+          </Route>
+          <Route path="/note2/:noteIdx">
+            <AddNote2 />
           </Route>
         </Switch>
       </div>

@@ -3,7 +3,7 @@ import json, logging
 from flask import  request, make_response, Blueprint
 
 from models import Note, db
-
+from services.anki import invoke
 
 api_notes = Blueprint(__name__, "notes", url_prefix="/api/notes")
 
@@ -42,3 +42,7 @@ def upload_note():
 
     # TODO: Flask-CORS
     return res
+
+@api_notes.route('/models', methods=['GET'])
+def get_models():
+    return invoke("modelNames")

@@ -37,3 +37,14 @@ export const addToQueue = async (word) =>
 
 export const getQueue = async () =>
   fetch(`/api/queue`).then((res) => res.json())
+
+export const getDecks = async () => {
+   const request = await new Request("http://127.0.0.1:5000/api/decks", {
+    method: "GET",
+    mode: "no-cors",
+   })
+    return fetch(request).then(res => res.json())
+}
+
+export const getModels = async () =>
+    fetch('/api/notes/models').then(res => res.json())
