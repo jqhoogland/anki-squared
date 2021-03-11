@@ -19,18 +19,10 @@ const useStyles = makeStyles(theme => ({
 const Chooser = ({label, chooseItem, defaultItem, path}) => {
   const classes = useStyles()
   const [item, setItem] = useState(defaultItem)
-  const [options, setOptions] = useState([defaultItem])
 
-  useEffect(() => {
-    // console.log(label, loadOptions)
-    // loadOptions().then(({result}) => {
-    //   console.log(label, result)
-    //   if (result && result.length) {
-    //     setItem(result[0])
-    //     setOptions(result)
-    //   }
-    // })
-  }, [])
+  const {data: {response: options}, error} = useSWR(path)
+
+  useEffect(() => {setItem(options[0])}, [options])
 
   const _setItem = (item) => {
     setItem(item)
@@ -45,7 +37,7 @@ const Chooser = ({label, chooseItem, defaultItem, path}) => {
         value={item}
         onChange={({target: {value}})=> _setItem(value)}
     >
-      {options.map((option, i) => <MenuItem key={`key${i}`} value={option}>{option}</MenuItem>)}
+      {options && options.map((option, i) => <MenuItem key={`key${i}`} value={option}>{option}</MenuItem>)}
     </Select>
   </FormControl>
 }
@@ -57,7 +49,6 @@ export default function Home() {
 
   return (
     <Container maxWidth="md">
-
         <Chooser label="Deck" chooseItem={setDeck} defaultItem={deck} path="/api/decks"/>
         <Chooser label="Model" chooseItem={setModel} defaultItem={model} path="/api/models"/>
 
