@@ -39,16 +39,18 @@ const useStyles = makeStyles(theme => ({
 
 
 const Field = ({
-   label,
-   isStarred,
-   onStar,
-   fieldType,
-   defaultQuery,
-   updateImages,
-   updateAudio,
-   updateText,
-   updateVideo
-}) => {
+                   label,
+                   isStarred,
+                   onStar,
+                   fieldType,
+                   defaultQuery,
+                   handleReturn,
+                   updateImages,
+                   updateAudio,
+                   updateText,
+                   updateVideo,
+                   isFocused
+               }) => {
     const classes = useStyles()
 
     const [textVisible, toggleTextVisible] = useBool(!fieldType || (fieldType.indexOf("text") >= 0))
@@ -75,7 +77,8 @@ const Field = ({
                 <Movie fontSize="small"/>
             </IconButton>
         </CardActions>
-        <TextSelector label={label} visible={textVisible} defaultQuery={defaultQuery} updateText={updateText}/>
+        <TextSelector label={label} visible={textVisible} defaultQuery={defaultQuery} updateText={updateText}
+                      handleReturn={handleReturn} isFocused={isFocused}/>
         <ImageSelector visible={imagesVisible} defaultQuery={defaultQuery} updateSelection={updateImages}/>
         <AudioSelector visible={audioVisible} defaultQuery={defaultQuery} updateSelection={updateAudio}/>
     </Card>

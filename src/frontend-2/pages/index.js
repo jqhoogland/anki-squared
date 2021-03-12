@@ -58,6 +58,9 @@ export default function Home() {
     const [audio, _updateAudio] = useMedia([])
     const [starredField, setStarredField] = useState("Basic")
     const [fieldTypes, setFieldTypes] = useState({})
+    const [defaultQuery, setDefaultQuery] = useState("")
+    const updateDefaultQuery = () => setDefaultQuery(fields[starredField])
+    const [focus, setFocus] = useState(fields[starredField])
 
     const {
         data: fieldsResponse,
@@ -115,6 +118,15 @@ export default function Home() {
         selection.map(({pathmp3}) => ({url: pathmp3, filename: getFileNameFromUrl(pathmp3) + ".mp3"}))
     )
 
+    const handleReturn = (fieldName) => {
+        if (fieldName === starredField) {
+            updateDefaultQuery()
+        }
+        const nextIndex = Math.min(fieldNames.indexOf(fieldName)+1, fieldNames.length)
+        setFocus(fieldNames[nextIndex])
+
+    }
+
     return (
         <Container maxWidth="md">
             <Grid container spacing={2}>
@@ -137,11 +149,13 @@ export default function Home() {
                                 label={fieldName}
                                 isStarred={fieldName === starredField}
                                 onStar={() => setStarredField(fieldName)}
+                                handleReturn={() => handleReturn(fieldName)}
                                 updateText={(text) => updateText(fieldName, text)}
                                 updateImages={(selection) => updatePicture(fieldName, selection)}
                                 updateAudio={(selection) => updateAudio(fieldName, selection)}
-                                defaultQuery={fields[starredField]}
+                                defaultQuery={defaultQuery}
                                 fieldType={fieldTypes[fieldName]}
+                                isFocused={fieldName === focus}
                             />
                         </Grid>)
                     )}
