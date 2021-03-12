@@ -45,6 +45,7 @@ export default function Home() {
     const [tags, setTags] = useState([])
     const [picture, _updatePicture] = useMedia([])
     const [audio, _updateAudio] = useMedia([])
+    const [starredField, setStarredField] = useState("Basic")
 
     const {
         data: fieldsResponse,
@@ -64,8 +65,9 @@ export default function Home() {
                 return ""
             }))
             setFields(_fields)
+            setStarredField(fieldNames[0])
         }
-    },    [fieldNames])
+    }, [fieldNames])
 
     const video = []
 
@@ -88,15 +90,15 @@ export default function Home() {
 
     const updatePicture = (fieldName, selection) => _updatePicture(
         fieldName,
-        selection.map(({img, filename}) => ({
-            url: img,
+        selection.map(({thumbnail, filename}) => ({
+            url: thumbnail,
             filename
         }))
     )
 
     const updateAudio = (fieldName, selection) => _updateAudio(
         fieldName,
-        selection.map(({pathmp3} ) => ({url: pathmp3, filename:getFileNameFromUrl(pathmp3) + ".mp3" }))
+        selection.map(({pathmp3}) => ({url: pathmp3, filename: getFileNameFromUrl(pathmp3) + ".mp3"}))
     )
 
     return (
@@ -116,8 +118,16 @@ export default function Home() {
                 <Grid container spacing={2}>
                     {!fieldNames.length && <Grid item sm={12}><CircularProgress/></Grid>}
                     {fieldNames.map(fieldName => (
-                        <Grid item sm={6} xs={12}>
-                            <Field label={fieldName} updateText={(text) => updateText(fieldName, text)} updateImages={(selection) => updatePicture(fieldName, selection)} updateAudio={(selection) => updateAudio(fieldName, selection)}/>
+                        <Grid item md={6} xs={12}>
+                            <Field
+                                label={fieldName}
+                                isStarred={fieldName === starredField}
+                                onStar={() => setStarredField(fieldName)}
+                                updateText={(text) => updateText(fieldName, text)}
+                                updateImages={(selection) => updatePicture(fieldName, selection)}
+                                updateAudio={(selection) => updateAudio(fieldName, selection)}
+                                defaultQuery={fields[starredField]}
+                            />
                         </Grid>)
                     )}
                     <Grid item xs={12}>

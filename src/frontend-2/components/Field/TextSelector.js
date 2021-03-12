@@ -1,19 +1,5 @@
-import {
-    Box, Card, CardActionArea, CardActions,
-    CardContent, CardMedia,
-    Collapse,
-    Divider, FormControl,
-    GridList,
-    GridListTile,
-    IconButton,
-    InputAdornment,
-    makeStyles,
-    TextField
-} from "@material-ui/core";
-import React, {useEffect, useState} from "react";
-import axios from "axios";
-import useSWR from "swr";
-import {Image as ImageIcon, Search} from "@material-ui/icons";
+import {CardContent, Collapse, Divider, FormControl, makeStyles, TextField} from "@material-ui/core";
+import React, {useState} from "react";
 
 const useStyles = makeStyles(theme => ({
     formControl: {
@@ -25,7 +11,7 @@ const useStyles = makeStyles(theme => ({
 }));
 
 
-const TextSelector = ({visible, label, defaultValue="", updateText}) => {
+const TextSelector = ({visible, label, defaultValue = "", updateText}) => {
     const classes = useStyles()
     const [value, setValue] = useState(defaultValue)
 
@@ -35,6 +21,7 @@ const TextSelector = ({visible, label, defaultValue="", updateText}) => {
     }
 
     return <Collapse in={visible} timeout="auto" unmountOnExit>
+        <Divider/>
         <CardContent>
             <FormControl className={classes.formControl}>
                 <TextField

@@ -3,20 +3,19 @@ import {
     Card,
     CardActionArea,
     CardContent,
-    CardHeader,
+    CardMedia,
     Collapse,
     Divider,
+    GridList,
+    GridListTile,
     IconButton,
     InputAdornment,
     makeStyles,
-    TextField,
-    Grid,
+    TextField
 } from "@material-ui/core";
-import Rating from "@material-ui/lab/Rating";
 import React, {useEffect, useState} from "react";
 import axios from "axios";
-import {Mic, Search} from "@material-ui/icons";
-import {useLanguage} from "./LanguageProvider";
+import {Image as ImageIcon, Search} from "@material-ui/icons";
 
 const useStyles = makeStyles(theme => ({
     margin: {
@@ -27,68 +26,48 @@ const useStyles = makeStyles(theme => ({
         // Promote the list into his own layer on Chrome. This cost memory but helps keeping high FPS.
         transform: 'translateZ(0)',
     },
-    audio: {
+    image: {
         width: "100%",
         height: "100%"
     }
 }));
 
-const AudioCard = ({audio, onClick}) => {
-    return <Card variant="outlined" >
-        <CardActionArea onClick={onClick}>
-            <CardHeader
-                avatar={<Rating name="disabled" value={3 *audio.rate / audio.num_votes} max={3} disabled />}
-                title={audio.username}
-                action={
-                    <audio controls>
-                        <source src={audio.pathmp3} type="audio/mp3"/>
-                        <source src={audio.pathogg} type="audio/ogg"/>
-                    </audio>
-                }
-            />
 
-        </CardActionArea>
-    </Card>
-}
-
-
-const AudioSelector = ({visible, defaultQuery = "", updateSelection}) => {
+const ImageSelector = ({visible, defaultQuery = "", updateSelection}) => {
     const classes = useStyles()
     const [query, setQuery] = useState(defaultQuery)
     const [selection, _setSelection] = useState([])
     const [options, setOptions] = useState([])
-    const {language} = useLanguage()
 
     const searchQuery = () => {
-        axios.post("/api/resources/audio", {query, language}).then(({data}) => {
-            console.log(data)
-            const audio = data?.response?.items ?? []
-            console.log(audio)
-            if (audio && audio?.length > 0) {
-                setOptions(audio)
+        axios.post("/api/resources/images", {query}).then(({data, ...rest}) => {
+            const images = data?.response ?? []
+            if (images && images.length > 0) {
+                setOptions(images)
             }
         })
     }
 
     useEffect(() => {
+        setQuery(defaultQuery)
         if (query && query.length > 0) {
             searchQuery()
         }
-    }, [])
+    }, [defaultQuery])
 
     const setSelection = (_selection) => {
         _setSelection(_selection)
         updateSelection(_selection)
     }
 
-    const selectAudio = (audio) => {
-        setSelection([...selection, audio])
-        setOptions(options.filter(option => option.id !== audio.id))
+    const selectImage = (image) => {
+        setSelection([...selection, image])
+        setOptions(options.filter(option => option.img !== image.img))
     }
 
-    const deselectAudio = (audio) => {
-        setOptions([audio, ...options])
-        setSelection(selection.filter(selection => selection.id !== audio.id))
+    const deselectImage = (image) => {
+        setOptions([image, ...options])
+        setSelection(selection.filter(selection => selection.img !== image.img))
     }
     return <Collapse in={visible} timeout="auto" unmountOnExit>
         <Divider/>
@@ -99,13 +78,13 @@ const AudioSelector = ({visible, defaultQuery = "", updateSelection}) => {
                 id="input-with-icon-textfield"
                 variant="outlined"
                 margin="dense"
-                placeholder="Search audios"
+                placeholder="Search images"
                 value={query}
                 onChange={({target: {value}}) => setQuery(value)}
                 InputProps={{
                     startAdornment: (
                         <InputAdornment position="start">
-                            <Mic fontSize="small" color="disabled"/>
+                            <ImageIcon fontSize="small" color="disabled"/>
                         </InputAdornment>
                     ),
                     endAdornment: (
@@ -119,28 +98,37 @@ const AudioSelector = ({visible, defaultQuery = "", updateSelection}) => {
                 }}
             />
             <Box mt={4}>
-                <Grid container spacing={1}>
+                <GridList cellHeight={60} cols={8}>
                     {selection.map((tile) => (
-                        <Grid item xs={12}>
-                            <AudioCard audio={tile} onClick={() => deselectAudio(tile)}/>
-                        </Grid>
+                        <GridListTile key={tile.img} cols={1}>
+                            <Card>
+                                <CardActionArea onClick={() => deselectImage(tile)}>
+                                    <CardMedia>
+                                        <img src={tile.thumbnail} alt={tile.title} className={classes.image}/>
+                                    </CardMedia>
+                                </CardActionArea>
+                            </Card>
+                        </GridListTile>
                     ))}
-                </Grid>
+                </GridList>
             </Box>
-            <Divider/>
             <Box mt={4}>
-                <Grid container spacing={1}>
-                    {
-                        options.map((tile) => (
-                            <Grid item xs={12} >
-                                <AudioCard audio={tile} onClick={() => selectAudio(tile)}/>
-                            </Grid>
-                        ))
-                    }
-                </Grid>
+                <GridList cellHeight={160} className={classes.gridList} cols={2.5}>
+                    {options.map((tile) => (
+                        <GridListTile key={tile.img} cols={1}>
+                            <Card>
+                                <CardActionArea onClick={() => selectImage(tile)}>
+                                    <CardMedia>
+                                        <img src={tile.thumbnail} alt={tile.title} className={classes.image}/>
+                                    </CardMedia>
+                                </CardActionArea>
+                            </Card>
+                        </GridListTile>
+                    ))}
+                </GridList>
             </Box>
         </CardContent>
     </Collapse>
 }
 
-export default AudioSelector
+export default ImageSelector
