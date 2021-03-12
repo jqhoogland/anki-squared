@@ -2,6 +2,9 @@ import _ from "lodash"
 import React, {useEffect, useState} from "react"
 import {
     Button,
+    Card,
+    CardContent,
+    Chip,
     CircularProgress,
     Container,
     FormControl,
@@ -11,18 +14,40 @@ import {
     makeStyles,
     MenuItem,
     Select,
-    TextField
+    TextField,
+    Paper,
+    IconButton,
+    InputBase
 } from "@material-ui/core"
+import AddIcon from "@material-ui/icons/AddCircle"
 import useSWR from "swr"
 import axios from "axios"
 
 const useStyles = makeStyles(theme => ({
     formControl: {
-        margin: theme.spacing(1),
         width: "100%"
     },
     selectEmpty: {
         marginTop: theme.spacing(2),
+    },
+    textField: {
+        width: "100%"
+    },
+    input: {
+        flex: 1,
+        paddingLeft: theme.spacing(1),
+    },
+    iconButton: {
+        padding: 10,
+        marginRight: 0
+    },
+    tagInput: {
+        padding: '2px 4px',
+        display: 'flex',
+        alignItems: 'center',
+    },
+    tagCard: {
+        marginTop: theme.spacing(8)
     },
 }));
 
@@ -55,7 +80,7 @@ const Chooser = ({label, chooseItem, defaultItem, path}) => {
             onChange={({target: {value}}) => _setItem(value)}
         >
             {options ? options.map((option, i) => <MenuItem key={`key${i}`} value={option}>{option}</MenuItem>)
-            : <MenuItem value={item}>{item}</MenuItem>}
+                : <MenuItem value={item}>{item}</MenuItem>}
 
         </Select>
         {!item && <LinearProgress/>}
@@ -66,7 +91,7 @@ const Field = ({label, updateField}) => {
     const classes = useStyles()
     const [value, setValue] = useState("")
 
-    const handleChange = ({target: { value }}) => {
+    const handleChange = ({target: {value}}) => {
         setValue(value)
         updateField(label, value)
     }
@@ -83,6 +108,52 @@ const Field = ({label, updateField}) => {
     </FormControl>
 }
 
+const TagPanel = ({defaultTags, updateTags}) => {
+    const classes = useStyles()
+    const [tags, setTags] = useState(defaultTags)
+    const [value, setValue] = useState("")
+
+    const _setTags = _tags => {
+        setTags(_tags)
+        updateTags(tags)
+    }
+    const removeTag = (tag) => _setTags(tags.filter(_tag => _tag !== tag))
+    const addTag = () => {
+        _setTags([...tags, value])
+        setValue("")
+    }
+
+    return <Card className={classes.tagCard} variant="outlined">
+        <CardContent>
+            <Grid container spacing={1}>
+                {tags.map((tag, i) => <Grid item><Chip
+                    className={classes.tag}
+                    key={`key${i}`}
+                    variant="outlined"
+                    size="small"
+                    label={tag}
+                    onDelete={() => removeTag(tag)}
+                /></Grid>)}
+            </Grid>
+        </CardContent>
+        <CardContent>
+            <Paper component="form" className={classes.tagInput} variant="outlined">
+                <InputBase
+                    className={classes.input}
+                    placeholder="Add Tags"
+                    value={value}
+                    inputProps={{ 'aria-label': 'add tags' }}
+                    onChange={({target: {value}}) => setValue(value)}
+                />
+                <IconButton onClick={addTag} className={classes.iconButton} aria-label="add">
+                    <AddIcon />
+                </IconButton>
+            </Paper>
+        </CardContent>
+
+    </Card>
+}
+
 const createCardOptions = {
     "allowDuplicate": false,
 }
@@ -91,6 +162,7 @@ export default function Home() {
     const [deckName, setDeck] = useState("Default")
     const [modelName, setModel] = useState("Basic")
     const [fields, setFields] = useState({})
+    const [tags, setTags] = useState([])
 
     const {data: fieldsResponse, error} = useSWR(`/api/models/fields/${modelName}`)
     const fieldNames = fieldsResponse?.response?.result ?? []
@@ -107,13 +179,21 @@ export default function Home() {
         }
     }, [fieldNames])
 
-    const tags = []
     const audio = []
     const picture = []
     const video = []
 
     const handleCreate = () => {
-        axios.post(`/api/notes/create`, {deckName, modelName, fields, options: createCardOptions, tags, audio, video, picture})
+        axios.post(`/api/notes/create`, {
+            deckName,
+            modelName,
+            fields,
+            options: createCardOptions,
+            tags,
+            audio,
+            video,
+            picture
+        })
     }
 
     const handleChangeField = (fieldName, value) => {
@@ -131,11 +211,18 @@ export default function Home() {
                 </Grid></Grid>
             <Grid container spacing={1}>
                 {!fieldNames.length && <Grid item sm={12}><CircularProgress/></Grid>}
-                {fieldNames.map(fieldName => <Grid item sm={6}><Field label={fieldName} updateField={handleChangeField}/></Grid>)}
+                {fieldNames.map(fieldName => <Grid item sm={6}><Field label={fieldName}
+                                                                      updateField={handleChangeField}/></Grid>)}
             </Grid>
             <Grid container spacing={1}>
                 <Grid item>
-                <Button variant="contained" onClick={handleCreate}>Create</Button>
+                    <Button variant="contained" onClick={handleCreate}>Create</Button>
+                </Grid>
+            </Grid>
+            <Grid container spacing={1}>
+                <Grid item xs={12}>
+                    <TagPanel defaultTags={tags} updateTags={setTags}/>
+
                 </Grid>
             </Grid>
         </Container>
