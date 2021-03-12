@@ -1,11 +1,6 @@
 import _ from "lodash"
 import React, {useEffect, useState} from "react"
-import {
-    Container,
-    Grid,
-    Button,
-    CircularProgress,
-} from "@material-ui/core"
+import {Box, Button, CircularProgress, Container, Grid,} from "@material-ui/core"
 import useSWR from "swr"
 import axios from "axios"
 
@@ -16,6 +11,7 @@ import TagPanel from "../components/TagPanel"
 const createCardOptions = {
     "allowDuplicate": false,
 }
+
 
 export default function Home() {
     const [deckName, setDeck] = useState("Default")
@@ -61,29 +57,32 @@ export default function Home() {
 
     return (
         <Container maxWidth="md">
-            <Grid container spacing={1}>
+            <Grid container spacing={2}>
                 <Grid item>
                     <Chooser label="Deck" chooseItem={setDeck} defaultItem={deckName} path="/api/decks"/>
                 </Grid>
                 <Grid item>
                     <Chooser label="Model" chooseItem={setModel} defaultItem={modelName} path="/api/models"/>
                 </Grid></Grid>
-            <Grid container spacing={1}>
-                {!fieldNames.length && <Grid item sm={12}><CircularProgress/></Grid>}
-                {fieldNames.map(fieldName => <Grid item sm={6}><Field label={fieldName}
-                                                                      updateField={handleChangeField}/></Grid>)}
-            </Grid>
-            <Grid container spacing={1}>
-                <Grid item>
-                    <Button variant="contained" onClick={handleCreate}>Create</Button>
-                </Grid>
-            </Grid>
-            <Grid container spacing={1}>
-                <Grid item xs={12}>
-                    <TagPanel defaultTags={tags} updateTags={setTags}/>
+            <Box mt={2}>
+                <Grid container spacing={2}>
+                    {!fieldNames.length && <Grid item sm={12}><CircularProgress/></Grid>}
+                    {fieldNames.map(fieldName => (
+                        <Grid item sm={6} xs={12}>
+                            <Field label={fieldName} updateField={handleChangeField}/>
+                        </Grid>)
+                    )}
+                    <Grid item xs={12}>
+                        <Box my={5}>
+                            <Button color="primary" variant="contained" onClick={handleCreate}>Create</Button>
+                        </Box>
+                    </Grid>
+                    <Grid item xs={12}>
+                        <TagPanel defaultTags={tags} updateTags={setTags}/>
 
+                    </Grid>
                 </Grid>
-            </Grid>
+            </Box>
         </Container>
     )
 }
