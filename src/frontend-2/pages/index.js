@@ -80,9 +80,9 @@ export default function Home() {
 
     const updatePicture = (fieldName, selection) => _updatePicture(
         fieldName,
-        selection.map(({img, title}) => ({
+        selection.map(({img, filename}) => ({
             url: img,
-            filename: title
+            filename
         }))
     )
 

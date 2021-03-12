@@ -1,13 +1,23 @@
-// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
-import {invoke} from "../../../utils"
+import {image_search} from "duckduckgo-images-api"
+
+const getFileNameFromUrl = (url) => {
+    if (url) {
+        const tmp = url.split('/');
+        const tmpLength = tmp.length;
+
+        return tmpLength ? tmp[tmpLength - 1] : '';
+    }
+
+    return '';
+};
 
 export default async (req, res) => {
-    console.log("Searching images for:", req.body.query)
-    return res.status(200).json({response: [
-            {img: "https://source.unsplash.com/random/200x200", title: "random.png"},
-            {img: "https://source.unsplash.com/random/200x200", title: "random.png"},
-            {img: "https://source.unsplash.com/random/200x200", title: "random.png"},
-        ]});
+    return res.status(200).json({
+        response: (
+            await image_search({query: req.body.query,})
+        )
+            .slice(0, 5) // TODO Pagination
+            .map(({image, ...rest}) => ({img: image, filename: getFileNameFromUrl(image), ...rest}))
+    })
 }
-// invoke("modelNames")
 

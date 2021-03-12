@@ -13,9 +13,7 @@ import {
 import React, {useEffect, useState} from "react";
 import axios from "axios";
 import useSWR from "swr";
-import {Image, Search} from "@material-ui/icons";
-
-import { useBool} from "../utils";
+import {Image as ImageIcon, Search} from "@material-ui/icons";
 
 const useStyles = makeStyles(theme => ({
     margin: {
@@ -39,13 +37,18 @@ const ImageSelector = ({visible, defaultQuery="", updateSelection}) => {
     const [selection, _setSelection] =useState([])
     const [options, setOptions] = useState([])
 
-    const imageFetcher = url => axios.post(url, {query})
-    const {data, error} = useSWR("/api/resources/images", imageFetcher)
-    const images = data?.data?.response ?? []
+    const searchQuery = () => {
+        axios.post("/api/resources/images", {query}).then(({data, ...rest}) => {
+            const images = data?.response ?? []
+            if (images && images.length > 0) {
+                setOptions(images)
+            }
+        })
+    }
 
     useEffect(() => {
-        if (images && images.length > 0) {
-            setOptions(images)
+        if (query && query.length > 0) {
+            searchQuery()
         }
     }, [])
 
@@ -63,16 +66,6 @@ const ImageSelector = ({visible, defaultQuery="", updateSelection}) => {
         setOptions([image, ...options])
         setSelection(selection.filter(selection => selection.img !== image.img))
     }
-
-    const searchQuery = () => {
-        imageFetcher("/api/resources/images").then(({data, ...rest}) => {
-            const _images = data?.response ?? []
-            if (_images && images.length > 0) {
-                setOptions(_images)
-            }
-        })
-    }
-
     return <Collapse in={visible} timeout="auto" unmountOnExit>
         <Divider/>
 
@@ -88,7 +81,7 @@ const ImageSelector = ({visible, defaultQuery="", updateSelection}) => {
                 InputProps={{
                     startAdornment: (
                         <InputAdornment position="start">
-                            <Image fontSize="small" color="disabled"/>
+                            <ImageIcon fontSize="small" color="disabled"/>
                         </InputAdornment>
                     ),
                     endAdornment: (
@@ -107,7 +100,7 @@ const ImageSelector = ({visible, defaultQuery="", updateSelection}) => {
                             <Card>
                                 <CardActionArea onClick={() => deselectImage(tile)}>
                                     <CardMedia>
-                                        <img src={tile.img} alt={tile.title} className={classes.image}/>
+                                        <img src={tile.thumbnail} alt={tile.title} className={classes.image}/>
                                     </CardMedia>
                                 </CardActionArea>
                             </Card>
@@ -122,7 +115,7 @@ const ImageSelector = ({visible, defaultQuery="", updateSelection}) => {
                             <Card>
                                 <CardActionArea onClick={() => selectImage(tile)}>
                                     <CardMedia>
-                                        <img src={tile.img} alt={tile.title} className={classes.image}/>
+                                        <img src={tile.thumbnail} alt={tile.title} className={classes.image}/>
                                     </CardMedia>
                                 </CardActionArea>
                             </Card>
