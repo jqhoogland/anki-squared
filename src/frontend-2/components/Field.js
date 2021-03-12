@@ -2,24 +2,16 @@ import {
     Card,
     CardActions,
     CardContent,
-    Collapse,
-    Divider,
     FormControl,
     IconButton,
     makeStyles,
     TextField,
-    Typography,
-    InputAdornment,
-    GridList,
-    GridListTile,
-    Box,
-    CardActionArea,
-    CardMedia
 } from "@material-ui/core";
-import React, {useState, useEffect} from "react";
-import {Image, Mic, Movie, Search} from "@material-ui/icons";
-import useSWR from "swr";
-import axios from "axios";
+import React, {useState} from "react";
+import {Image, Mic, Movie} from "@material-ui/icons";
+
+import ImageSelector from "./ImageSelector";
+import {useBool} from "../utils";
 
 const useStyles = makeStyles(theme => ({
     formControl: {
@@ -47,102 +39,6 @@ const useStyles = makeStyles(theme => ({
         height: "100%"
     }
 }));
-
-const useBool = (defaultValue = false) => {
-    const [value, setValue] = useState(defaultValue)
-    const toggleValue = () => setValue(!value)
-    return [value, toggleValue]
-}
-
-const ImageSelector = ({visible, defaultQuery="", updateSelection}) => {
-    const classes = useStyles()
-    const [query, setQuery] = useState(defaultQuery)
-    const [selection, _setSelection] =useState([])
-    const [options, setOptions] = useState([])
-
-    const imageFetcher = url => axios.post(url, {query})
-    const {data, error} = useSWR("/api/resources/images", imageFetcher)
-    const images = data?.data?.response ?? []
-
-    useEffect(() => {
-        if (images && images.length > 0) {
-            setOptions(images)
-        }
-    }, [])
-
-    const setSelection = (_selection) => {
-        _setSelection(_selection)
-        updateSelection(_selection)
-    }
-
-    const selectImage = (image) => {
-        setSelection([...selection, image])
-        setOptions(options.filter(option => option.img !== image.img))
-    }
-
-    const deselectImage = (image) => {
-        setOptions([image, ...options])
-        setSelection(selection.filter(selection => selection.img !== image.img))
-    }
-
-    return <Collapse in={visible} timeout="auto" unmountOnExit>
-        <Divider/>
-
-        <CardContent>
-            <TextField
-                className={classes.margin}
-                id="input-with-icon-textfield"
-                variant="outlined"
-                margin="dense"
-                placeholder="Search images"
-                value={query}
-                onChange={({target: { value }})=> setQuery(value)}
-                InputProps={{
-                    startAdornment: (
-                        <InputAdornment position="start">
-                            <Image fontSize="small" color="disabled"/>
-                        </InputAdornment>
-                    ),
-                    endAdornment: (
-                        <InputAdornment position="start">
-                            <Search fontSize="small" color="disabled"/>
-                        </InputAdornment>
-                    ),
-                }}
-            />
-            <Box mt={4}>
-                <GridList cellHeight={60}  cols={8}>
-                    {selection.map((tile) => (
-                        <GridListTile key={tile.img} cols={1}>
-                            <Card>
-                                <CardActionArea onClick={() => deselectImage(tile)}>
-                                    <CardMedia>
-                                        <img src={tile.img} alt={tile.title} className={classes.image}/>
-                                    </CardMedia>
-                                </CardActionArea>
-                            </Card>
-                        </GridListTile>
-                    ))}
-                </GridList>
-            </Box>
-            <Box mt={4}>
-            <GridList cellHeight={160} className={classes.gridList} cols={2.5}>
-                {options.map((tile) => (
-                    <GridListTile key={tile.img} cols={1}>
-                        <Card>
-                            <CardActionArea onClick={() => selectImage(tile)}>
-                                <CardMedia>
-                                    <img src={tile.img} alt={tile.title} className={classes.image}/>
-                                </CardMedia>
-                            </CardActionArea>
-                        </Card>
-                    </GridListTile>
-                ))}
-            </GridList>
-            </Box>
-        </CardContent>
-    </Collapse>
-}
 
 const Field = ({label, updateField, updateImages, updateAudio, updateVideo}) => {
     const classes = useStyles()
