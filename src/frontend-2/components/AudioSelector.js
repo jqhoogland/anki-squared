@@ -16,6 +16,7 @@ import Rating from "@material-ui/lab/Rating";
 import React, {useEffect, useState} from "react";
 import axios from "axios";
 import {Mic, Search} from "@material-ui/icons";
+import {useLanguage} from "./LanguageProvider";
 
 const useStyles = makeStyles(theme => ({
     margin: {
@@ -56,9 +57,10 @@ const AudioSelector = ({visible, defaultQuery = "", updateSelection}) => {
     const [query, setQuery] = useState(defaultQuery)
     const [selection, _setSelection] = useState([])
     const [options, setOptions] = useState([])
+    const {language} = useLanguage()
 
     const searchQuery = () => {
-        axios.post("/api/resources/audio", {query, language: "it"}).then(({data}) => {
+        axios.post("/api/resources/audio", {query, language}).then(({data}) => {
             console.log(data)
             const audio = data?.response?.items ?? []
             console.log(audio)

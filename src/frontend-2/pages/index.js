@@ -1,17 +1,23 @@
 import _ from "lodash"
 import React, {useEffect, useState} from "react"
-import {Box, Button, CircularProgress, Container, Grid,} from "@material-ui/core"
+import {Box, Button, CircularProgress, Container, Grid, makeStyles,} from "@material-ui/core"
 import useSWR from "swr"
 import axios from "axios"
 
+import LanguagePicker from "../components/LanguagePicker";
 import Chooser from "../components/Chooser";
 import Field from "../components/Field"
 import TagPanel from "../components/TagPanel"
 import {getFileNameFromUrl} from "../utils";
 
+
 const createCardOptions = {
     "allowDuplicate": false,
 }
+
+const useStyles = makeStyles({
+    languagePicker: {marginLeft: "auto"}
+})
 
 const makeMedia = (fieldName, {url, filename}) => ({
     url,
@@ -32,6 +38,7 @@ const useMedia = (defaultValue = []) => {
 }
 
 export default function Home() {
+    const classes = useStyles()
     const [deckName, setDeck] = useState("Default")
     const [modelName, setModel] = useState("Basic")
     const [fields, setFields] = useState({})
@@ -100,7 +107,11 @@ export default function Home() {
                 </Grid>
                 <Grid item>
                     <Chooser label="Model" chooseItem={setModel} defaultItem={modelName} path="/api/models"/>
-                </Grid></Grid>
+                </Grid>
+                <Grid item className={classes.languagePicker}>
+                    <LanguagePicker label="Language"/>
+                </Grid>
+            </Grid>
             <Box mt={2}>
                 <Grid container spacing={2}>
                     {!fieldNames.length && <Grid item sm={12}><CircularProgress/></Grid>}

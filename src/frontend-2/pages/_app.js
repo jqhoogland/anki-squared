@@ -5,6 +5,7 @@ import Container from "@material-ui/core/Container"
 import Box from "@material-ui/core/Box"
 import theme from "../theme";
 import {ThemeProvider} from "@material-ui/core"
+import LanguageProvider from "../components/LanguageProvider";
 
 function MyApp({Component, pageProps}) {
     React.useEffect(() => {
@@ -31,11 +32,13 @@ function MyApp({Component, pageProps}) {
                 <meta name="viewport" content="minimum-scale=1, initial-scale=1, width=device-width"/>
             </Head>
             <ThemeProvider theme={theme}>
+                <LanguageProvider>
             <main>
                 <Box my={4}>
                 <Component {...pageProps} />
                 </Box>
             </main>
+                </LanguageProvider>
             </ThemeProvider>
             <footer>
                 <Container>
