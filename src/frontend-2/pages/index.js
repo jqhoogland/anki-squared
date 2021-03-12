@@ -7,6 +7,7 @@ import axios from "axios"
 import Chooser from "../components/Chooser";
 import Field from "../components/Field"
 import TagPanel from "../components/TagPanel"
+import {getFileNameFromUrl} from "../utils";
 
 const createCardOptions = {
     "allowDuplicate": false,
@@ -36,6 +37,7 @@ export default function Home() {
     const [fields, setFields] = useState({})
     const [tags, setTags] = useState([])
     const [picture, _updatePicture] = useMedia([])
+    const [audio, _updateAudio] = useMedia([])
 
     const {
         data: fieldsResponse,
@@ -58,7 +60,6 @@ export default function Home() {
         }
     },    [fieldNames])
 
-    const audio = []
     const video = []
 
     const handleCreate = () => {
@@ -86,6 +87,11 @@ export default function Home() {
         }))
     )
 
+    const updateAudio = (fieldName, selection) => _updateAudio(
+        fieldName,
+        selection.map(({pathmp3} ) => ({url: pathmp3, filename:getFileNameFromUrl(pathmp3) + ".mp3" }))
+    )
+
     return (
         <Container maxWidth="md">
             <Grid container spacing={2}>
@@ -100,7 +106,7 @@ export default function Home() {
                     {!fieldNames.length && <Grid item sm={12}><CircularProgress/></Grid>}
                     {fieldNames.map(fieldName => (
                         <Grid item sm={6} xs={12}>
-                            <Field label={fieldName} updateField={handleChangeField} updateImages={(selection) => updatePicture(fieldName, selection)}/>
+                            <Field label={fieldName} updateField={handleChangeField} updateImages={(selection) => updatePicture(fieldName, selection)} updateAudio={(selection) => updateAudio(fieldName, selection)}/>
                         </Grid>)
                     )}
                     <Grid item xs={12}>
@@ -110,7 +116,6 @@ export default function Home() {
                     </Grid>
                     <Grid item xs={12}>
                         <TagPanel defaultTags={tags} updateTags={setTags}/>
-
                     </Grid>
                 </Grid>
             </Box>

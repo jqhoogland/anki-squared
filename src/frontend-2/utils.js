@@ -12,3 +12,14 @@ export const useBool = (defaultValue = false) => {
     const toggleValue = () => setValue(!value)
     return [value, toggleValue]
 }
+
+export const getFileNameFromUrl = (url) => {
+    if (url) {
+        const tmp = url.split('/');
+        const tmpLength = tmp.length;
+
+        return tmpLength ? tmp[tmpLength - 1] : '';
+    }
+
+    return '';
+};

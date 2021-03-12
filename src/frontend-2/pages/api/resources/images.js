@@ -1,15 +1,5 @@
 import {image_search} from "duckduckgo-images-api"
-
-const getFileNameFromUrl = (url) => {
-    if (url) {
-        const tmp = url.split('/');
-        const tmpLength = tmp.length;
-
-        return tmpLength ? tmp[tmpLength - 1] : '';
-    }
-
-    return '';
-};
+import { getFileNameFromUrl} from "../../../utils";
 
 export default async (req, res) => {
     return res.status(200).json({

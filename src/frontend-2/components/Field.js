@@ -2,16 +2,27 @@ import {
     Card,
     CardActions,
     CardContent,
+    Collapse,
+    Divider,
     FormControl,
     IconButton,
     makeStyles,
     TextField,
+    InputAdornment,
+    GridList,
+    GridListTile,
+    Box,
+    CardActionArea,
+    CardMedia
 } from "@material-ui/core";
-import React, {useState} from "react";
-import {Image, Mic, Movie} from "@material-ui/icons";
+import React, {useState, useEffect} from "react";
+import {Image, Mic, Movie, Search} from "@material-ui/icons";
+import useSWR from "swr";
+import axios from "axios";
 
 import ImageSelector from "./ImageSelector";
-import {useBool} from "../utils";
+import AudioSelector from "./AudioSelector";
+import { useBool} from "../utils";
 
 const useStyles = makeStyles(theme => ({
     formControl: {
@@ -39,6 +50,7 @@ const useStyles = makeStyles(theme => ({
         height: "100%"
     }
 }));
+
 
 const Field = ({label, updateField, updateImages, updateAudio, updateVideo}) => {
     const classes = useStyles()
@@ -79,7 +91,7 @@ const Field = ({label, updateField, updateImages, updateAudio, updateVideo}) => 
             </FormControl>
         </CardContent>
         <ImageSelector visible={imagesVisible} defaultQuery={""} updateSelection={updateImages}/>
-        <ImageSelector visible={audioVisible} defaultQuery={""} updateSelection={updateAudio}/>
+        <AudioSelector visible={audioVisible} defaultQuery={""} updateSelection={updateAudio}/>
     </Card>
 }
 
