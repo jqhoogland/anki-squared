@@ -24,16 +24,16 @@ const useStyles = makeStyles(theme => ({
 
 const TagPanel = ({defaultTags, updateTags}) => {
     const classes = useStyles()
-    const [tags, setTags] = useState(defaultTags)
+    const [tags, _setTags] = useState(defaultTags)
     const [value, setValue] = useState("")
 
-    const _setTags = _tags => {
-        setTags(_tags)
+    const setTags = _tags => {
+        _setTags(_tags)
         updateTags(tags)
     }
-    const removeTag = (tag) => _setTags(tags.filter(_tag => _tag !== tag))
+    const removeTag = (tag) => setTags(tags.filter(_tag => _tag !== tag))
     const addTag = () => {
-        _setTags([...tags, value])
+        setTags([...tags, value])
         setValue("")
     }
 

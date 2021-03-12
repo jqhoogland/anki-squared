@@ -10,19 +10,19 @@ const useStyles = makeStyles(theme => ({
 
 const Chooser = ({label, chooseItem, defaultItem, path}) => {
     const classes = useStyles()
-    const [item, setItem] = useState(defaultItem)
+    const [item, _setItem] = useState(defaultItem)
 
     const {data, error} = useSWR(path, (url) => window.fetch(url).then(res => res.json()), {revalidateOnReconnect: false, revalidateOnFocus: false})
     const options = data?.response ?? []
 
-    const _setItem = (item) => {
-        setItem(item)
+    const setItem = (item) => {
+        _setItem(item)
         chooseItem(item)
     }
 
     useEffect(() => {
         if (options && options.length > 0) {
-            _setItem(options[0])
+            setItem(options[0])
         }
     }, [options])
 
@@ -34,7 +34,7 @@ const Chooser = ({label, chooseItem, defaultItem, path}) => {
                 labelId="demo-simple-select-label"
                 id="demo-simple-select"
                 value={item}
-                onChange={({target: {value}}) => _setItem(value)}
+                onChange={({target: {value}}) => setItem(value)}
             >
                 {options ? options.map((option, i) => <MenuItem key={`key${i}`} value={option}>{option}</MenuItem>)
                     : <MenuItem value={item}>{item}</MenuItem>}

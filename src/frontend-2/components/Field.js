@@ -54,10 +54,10 @@ const useBool = (defaultValue = false) => {
     return [value, toggleValue]
 }
 
-const ImageSelector = ({visible, defaultQuery=""}) => {
+const ImageSelector = ({visible, defaultQuery="", updateSelection}) => {
     const classes = useStyles()
     const [query, setQuery] = useState(defaultQuery)
-    const [selection, setSelection] =useState([])
+    const [selection, _setSelection] =useState([])
     const [options, setOptions] = useState([])
 
     const imageFetcher = url => axios.post(url, {query})
@@ -70,6 +70,11 @@ const ImageSelector = ({visible, defaultQuery=""}) => {
         }
     }, [])
 
+    const setSelection = (_selection) => {
+        _setSelection(_selection)
+        updateSelection(_selection)
+    }
+
     const selectImage = (image) => {
         setSelection([...selection, image])
         setOptions(options.filter(option => option.img !== image.img))
@@ -77,7 +82,7 @@ const ImageSelector = ({visible, defaultQuery=""}) => {
 
     const deselectImage = (image) => {
         setOptions([image, ...options])
-        setSelections(selections.filter(selection => selection.img !== image.img))
+        setSelection(selection.filter(selection => selection.img !== image.img))
     }
 
     return <Collapse in={visible} timeout="auto" unmountOnExit>
@@ -106,7 +111,7 @@ const ImageSelector = ({visible, defaultQuery=""}) => {
                 }}
             />
             <Box mt={4}>
-                <GridList cellHeight={50}  cols={10}>
+                <GridList cellHeight={60}  cols={8}>
                     {selection.map((tile) => (
                         <GridListTile key={tile.img} cols={1}>
                             <Card>
@@ -139,7 +144,7 @@ const ImageSelector = ({visible, defaultQuery=""}) => {
     </Collapse>
 }
 
-const Field = ({label, updateField}) => {
+const Field = ({label, updateField, updateImages, updateAudio, updateVideo}) => {
     const classes = useStyles()
     const [value, setValue] = useState("")
 
@@ -150,9 +155,6 @@ const Field = ({label, updateField}) => {
     const handleChange = ({target: {value}}) => {
         setValue(value)
         updateField(label, value)
-    }
-
-    const addImage = () => {
     }
 
     return <Card variant="outlined">
@@ -180,8 +182,8 @@ const Field = ({label, updateField}) => {
                 />
             </FormControl>
         </CardContent>
-        <ImageSelector visible={imagesVisible}/>
-        <ImageSelector visible={audioVisible}/>
+        <ImageSelector visible={imagesVisible} defaultQuery={""} updateSelection={updateImages}/>
+        <ImageSelector visible={audioVisible} defaultQuery={""} updateSelection={updateAudio}/>
     </Card>
 }
 

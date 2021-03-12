@@ -12,14 +12,38 @@ const createCardOptions = {
     "allowDuplicate": false,
 }
 
+const makeMedia = (fieldName, {url, filename}) => ({
+    url,
+    filename,
+    fields: [fieldName]
+})
+
+const useMedia = (defaultValue = []) => {
+    const [media, setMedia] = useState(defaultValue)
+
+    const updateMedia = (fieldName, selection) => {
+        setMedia([
+            ...media.filter((media) => !media.fields.find(field => field === fieldName)),
+            ...selection.map(media => makeMedia(fieldName, media))
+        ])
+    }
+    return [media, updateMedia]
+}
 
 export default function Home() {
     const [deckName, setDeck] = useState("Default")
     const [modelName, setModel] = useState("Basic")
     const [fields, setFields] = useState({})
     const [tags, setTags] = useState([])
+    const [picture, _updatePicture] = useMedia([])
 
-    const {data: fieldsResponse, error} = useSWR(`/api/models/fields/${modelName}`, (url) => window.fetch(url).then(res => res.json()), {revalidateOnReconnect: false, revalidateOnFocus: false})
+    const {
+        data: fieldsResponse,
+        error
+    } = useSWR(`/api/models/fields/${modelName}`, (url) => window.fetch(url).then(res => res.json()), {
+        revalidateOnReconnect: false,
+        revalidateOnFocus: false
+    })
     const fieldNames = fieldsResponse?.response?.result ?? []
 
     useEffect(() => {
@@ -32,10 +56,9 @@ export default function Home() {
             }))
             setFields(_fields)
         }
-    }, [fieldNames])
+    },    [fieldNames])
 
     const audio = []
-    const picture = []
     const video = []
 
     const handleCreate = () => {
@@ -55,6 +78,14 @@ export default function Home() {
         setFields({...fields, [fieldName]: value})
     }
 
+    const updatePicture = (fieldName, selection) => _updatePicture(
+        fieldName,
+        selection.map(({img, title}) => ({
+            url: img,
+            filename: title
+        }))
+    )
+
     return (
         <Container maxWidth="md">
             <Grid container spacing={2}>
@@ -69,7 +100,7 @@ export default function Home() {
                     {!fieldNames.length && <Grid item sm={12}><CircularProgress/></Grid>}
                     {fieldNames.map(fieldName => (
                         <Grid item sm={6} xs={12}>
-                            <Field label={fieldName} updateField={handleChangeField}/>
+                            <Field label={fieldName} updateField={handleChangeField} updateImages={(selection) => updatePicture(fieldName, selection)}/>
                         </Grid>)
                     )}
                     <Grid item xs={12}>
