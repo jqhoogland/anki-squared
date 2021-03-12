@@ -12,7 +12,7 @@ const Chooser = ({label, chooseItem, defaultItem, path}) => {
     const classes = useStyles()
     const [item, setItem] = useState(defaultItem)
 
-    const {data, error} = useSWR(path)
+    const {data, error} = useSWR(path, (url) => window.fetch(url).then(res => res.json()), {revalidateOnReconnect: false, revalidateOnFocus: false})
     const options = data?.response ?? []
 
     const _setItem = (item) => {

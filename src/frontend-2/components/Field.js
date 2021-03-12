@@ -9,10 +9,15 @@ import {
     makeStyles,
     TextField,
     Typography,
-    InputAdornment
+    InputAdornment,
+    GridList,
+    GridListTile,
+    Box
 } from "@material-ui/core";
 import React, {useState} from "react";
 import {Image, Mic, Movie, Search} from "@material-ui/icons";
+import useSWR from "swr";
+import axios from "axios";
 
 const useStyles = makeStyles(theme => ({
     formControl: {
@@ -28,7 +33,12 @@ const useStyles = makeStyles(theme => ({
         paddingRight: theme.spacing(2)
     },
     margin: {
-        margin: theme.spacing(1),
+        margin: "auto"
+    },
+    gridList: {
+        flexWrap: 'nowrap',
+        // Promote the list into his own layer on Chrome. This cost memory but helps keeping high FPS.
+        transform: 'translateZ(0)',
     },
 }));
 
@@ -38,17 +48,27 @@ const useBool = (defaultValue = false) => {
     return [value, toggleValue]
 }
 
-const ImageSelector = ({visible}) => {
+const ImageSelector = ({visible, defaultQuery=""}) => {
     const classes = useStyles()
+    const [query, setQuery] = useState(defaultQuery)
+
+    const imageFetcher = url => axios.post(url, {query})
+    const {data, error, ...rest} = useSWR("/api/resources/images", imageFetcher)
+    const images = data?.data?.response ?? []
+    console.log(rest, data, error)
 
     return <Collapse in={visible} timeout="auto" unmountOnExit>
+        <Divider/>
+
         <CardContent>
-            <Divider/>
             <TextField
                 className={classes.margin}
                 id="input-with-icon-textfield"
                 variant="outlined"
                 margin="dense"
+                placeholder="Search images"
+                value={query}
+                onChange={({target: { value }})=> setQuery(value)}
                 InputProps={{
                     startAdornment: (
                         <InputAdornment position="start">
@@ -62,6 +82,15 @@ const ImageSelector = ({visible}) => {
                     ),
                 }}
             />
+            <Box mt={4}>
+            <GridList cellHeight={160} className={classes.gridList} cols={4}>
+                {images.map((tile) => (
+                    <GridListTile key={tile.img} cols={2.5}>
+                        <img src={tile.img} alt={tile.title} />
+                    </GridListTile>
+                ))}
+            </GridList>
+            </Box>
         </CardContent>
     </Collapse>
 }
@@ -83,6 +112,18 @@ const Field = ({label, updateField}) => {
     }
 
     return <Card variant="outlined">
+        <CardActions className={classes.fieldActions}>
+            <IconButton size="small" onClick={toggleImagesVisible} className={classes.iconButton} aria-label="add">
+                <Image fontSize="small" color={imagesVisible ? "primary" : "action"}/>
+            </IconButton>
+            <IconButton size="small" onClick={toggleAudioVisible} className={classes.iconButton} aria-label="add">
+                <Mic fontSize="small" color={audioVisible ? "primary" : "action"}/>
+            </IconButton>
+            <IconButton disabled size="small" onClick={toggleVideosVisible} className={classes.iconButton}
+                        aria-label="add">
+                <Movie fontSize="small" />
+            </IconButton>
+        </CardActions>
         <CardContent>
             <FormControl className={classes.formControl}>
                 <TextField
@@ -95,18 +136,6 @@ const Field = ({label, updateField}) => {
                 />
             </FormControl>
         </CardContent>
-        <CardActions className={classes.fieldActions}>
-            <IconButton size="small" onClick={toggleImagesVisible} className={classes.iconButton} aria-label="add">
-                <Image fontSize="small" color={imagesVisible ? "primary" : "action"}/>
-            </IconButton>
-            <IconButton size="small" onClick={toggleAudioVisible} className={classes.iconButton} aria-label="add">
-                <Mic fontSize="small"/>
-            </IconButton>
-            <IconButton disabled size="small" onClick={toggleVideosVisible} className={classes.iconButton}
-                        aria-label="add">
-                <Movie fontSize="small" color={audioVisible ? "primary" : "action"}/>
-            </IconButton>
-        </CardActions>
         <ImageSelector visible={imagesVisible}/>
         <ImageSelector visible={audioVisible}/>
     </Card>

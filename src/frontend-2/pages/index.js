@@ -19,7 +19,7 @@ export default function Home() {
     const [fields, setFields] = useState({})
     const [tags, setTags] = useState([])
 
-    const {data: fieldsResponse, error} = useSWR(`/api/models/fields/${modelName}`)
+    const {data: fieldsResponse, error} = useSWR(`/api/models/fields/${modelName}`, (url) => window.fetch(url).then(res => res.json()), {revalidateOnReconnect: false, revalidateOnFocus: false})
     const fieldNames = fieldsResponse?.response?.result ?? []
 
     useEffect(() => {
