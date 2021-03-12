@@ -16,10 +16,11 @@ import {
     CardMedia
 } from "@material-ui/core";
 import React, {useState, useEffect} from "react";
-import {Image, Mic, Movie, Search} from "@material-ui/icons";
+import {Image, Mic, Movie, Search, TextFields} from "@material-ui/icons";
 import useSWR from "swr";
 import axios from "axios";
 
+import TextSelector from "./TextSelector"
 import ImageSelector from "./ImageSelector";
 import AudioSelector from "./AudioSelector";
 import { useBool} from "../utils";
@@ -52,21 +53,19 @@ const useStyles = makeStyles(theme => ({
 }));
 
 
-const Field = ({label, updateField, updateImages, updateAudio, updateVideo}) => {
+const Field = ({label, updateField, updateImages, updateAudio, updateText, updateVideo}) => {
     const classes = useStyles()
-    const [value, setValue] = useState("")
 
+    const [textVisible, toggleTextVisible] = useBool(true)
     const [imagesVisible, toggleImagesVisible] = useBool(false)
     const [audioVisible, toggleAudioVisible] = useBool(false)
     const [videosVisible, toggleVideosVisible] = useBool(false)
 
-    const handleChange = ({target: {value}}) => {
-        setValue(value)
-        updateField(label, value)
-    }
-
     return <Card variant="outlined">
         <CardActions className={classes.fieldActions}>
+            <IconButton size="small" onClick={toggleTextVisible} className={classes.iconButton} aria-label="add">
+                <TextFields fontSize="small" color={textVisible ? "primary" : "action"}/>
+            </IconButton>
             <IconButton size="small" onClick={toggleImagesVisible} className={classes.iconButton} aria-label="add">
                 <Image fontSize="small" color={imagesVisible ? "primary" : "action"}/>
             </IconButton>
@@ -78,18 +77,7 @@ const Field = ({label, updateField, updateImages, updateAudio, updateVideo}) => 
                 <Movie fontSize="small" />
             </IconButton>
         </CardActions>
-        <CardContent>
-            <FormControl className={classes.formControl}>
-                <TextField
-                    className={classes.textField}
-                    label={label}
-                    multiline
-                    value={value}
-                    onChange={handleChange}
-                    margin="dense"
-                />
-            </FormControl>
-        </CardContent>
+        <TextSelector label={label} visible={textVisible} defaultQuery={""} updateSelection={updateText}/>
         <ImageSelector visible={imagesVisible} defaultQuery={""} updateSelection={updateImages}/>
         <AudioSelector visible={audioVisible} defaultQuery={""} updateSelection={updateAudio}/>
     </Card>

@@ -75,7 +75,7 @@ export default function Home() {
         })
     }
 
-    const handleChangeField = (fieldName, value) => {
+    const updateText = (fieldName, value) => {
         setFields({...fields, [fieldName]: value})
     }
 
@@ -106,7 +106,7 @@ export default function Home() {
                     {!fieldNames.length && <Grid item sm={12}><CircularProgress/></Grid>}
                     {fieldNames.map(fieldName => (
                         <Grid item sm={6} xs={12}>
-                            <Field label={fieldName} updateField={handleChangeField} updateImages={(selection) => updatePicture(fieldName, selection)} updateAudio={(selection) => updateAudio(fieldName, selection)}/>
+                            <Field label={fieldName} updateText={(text) => updateText(fieldName, text)} updateImages={(selection) => updatePicture(fieldName, selection)} updateAudio={(selection) => updateAudio(fieldName, selection)}/>
                         </Grid>)
                     )}
                     <Grid item xs={12}>

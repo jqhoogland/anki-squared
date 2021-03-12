@@ -119,7 +119,7 @@ const AudioSelector = ({visible, defaultQuery = "", updateSelection}) => {
             <Box mt={4}>
                 <Grid container spacing={1}>
                     {selection.map((tile) => (
-                        <Grid item xs={12} md={6}>
+                        <Grid item xs={12}>
                             <AudioCard audio={tile} onClick={() => deselectAudio(tile)}/>
                         </Grid>
                     ))}
@@ -130,7 +130,7 @@ const AudioSelector = ({visible, defaultQuery = "", updateSelection}) => {
                 <Grid container spacing={1}>
                     {
                         options.map((tile) => (
-                            <Grid item xs={12} md={6}>
+                            <Grid item xs={12} >
                                 <AudioCard audio={tile} onClick={() => selectAudio(tile)}/>
                             </Grid>
                         ))
