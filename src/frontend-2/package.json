@@ -15,6 +15,7 @@
     "clsx": "^1.1.1",
     "duckduckgo-images-api": "^1.0.5",
     "forvo": "^1.0.0",
+    "js-cookie": "^2.2.1",
     "lodash": "^4.17.21",
     "material-ui-audio-player": "^1.6.1",
     "next": "^10.0.8",

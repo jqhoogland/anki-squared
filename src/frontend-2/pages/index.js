@@ -3,6 +3,7 @@ import React, {useEffect, useState} from "react"
 import {Box, Button, CircularProgress, Container, Grid, makeStyles,} from "@material-ui/core"
 import useSWR from "swr"
 import axios from "axios"
+import Cookies from "js-cookie"
 
 import LanguagePicker from "../components/LanguagePicker";
 import Chooser from "../components/Chooser";
@@ -18,6 +19,16 @@ const createCardOptions = {
 const useStyles = makeStyles({
     languagePicker: {marginLeft: "auto"}
 })
+
+const saveFieldTypes = ({modelName, fields, audio, video, picture}) => {
+    const fieldTypes = _.mapValues(fields, text => text.length > 0 ? ["text"] : [])
+
+    audio.forEach(({fields}) => fieldTypes[fields[0]] = [...fieldTypes[fields[0]], "audio"])
+    video.forEach(({fields}) => fieldTypes[fields[0]] = [...fieldTypes[fields[0]], "video"])
+    picture.forEach(({fields}) => fieldTypes[fields[0]] = [...fieldTypes[fields[0]], "picture"])
+
+    Cookies.set(modelName, _.mapValues(fieldTypes, _.uniq))
+}
 
 const makeMedia = (fieldName, {url, filename}) => ({
     url,
@@ -46,6 +57,7 @@ export default function Home() {
     const [picture, _updatePicture] = useMedia([])
     const [audio, _updateAudio] = useMedia([])
     const [starredField, setStarredField] = useState("Basic")
+    const [fieldTypes, setFieldTypes] = useState({})
 
     const {
         data: fieldsResponse,
@@ -66,12 +78,14 @@ export default function Home() {
             }))
             setFields(_fields)
             setStarredField(fieldNames[0])
+            setFieldTypes(JSON.parse(Cookies.get(modelName)))
         }
     }, [fieldNames])
 
     const video = []
 
     const handleCreate = () => {
+        saveFieldTypes({modelName, fields, audio, video, picture})
         axios.post(`/api/notes/create`, {
             deckName,
             modelName,
@@ -127,6 +141,7 @@ export default function Home() {
                                 updateImages={(selection) => updatePicture(fieldName, selection)}
                                 updateAudio={(selection) => updateAudio(fieldName, selection)}
                                 defaultQuery={fields[starredField]}
+                                fieldType={fieldTypes[fieldName]}
                             />
                         </Grid>)
                     )}

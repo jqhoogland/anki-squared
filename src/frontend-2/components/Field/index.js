@@ -38,18 +38,28 @@ const useStyles = makeStyles(theme => ({
 }));
 
 
-const Field = ({label, isStarred, onStar, defaultQuery, updateImages, updateAudio, updateText, updateVideo}) => {
+const Field = ({
+   label,
+   isStarred,
+   onStar,
+   fieldType,
+   defaultQuery,
+   updateImages,
+   updateAudio,
+   updateText,
+   updateVideo
+}) => {
     const classes = useStyles()
 
-    const [textVisible, toggleTextVisible] = useBool(true)
-    const [imagesVisible, toggleImagesVisible] = useBool(false)
-    const [audioVisible, toggleAudioVisible] = useBool(false)
-    const [videosVisible, toggleVideosVisible] = useBool(false)
+    const [textVisible, toggleTextVisible] = useBool(!fieldType || (fieldType.indexOf("text") >= 0))
+    const [imagesVisible, toggleImagesVisible] = useBool(fieldType && (fieldType.indexOf("picture") >= 0))
+    const [audioVisible, toggleAudioVisible] = useBool(fieldType && (fieldType.indexOf("audio") >= 0))
+    const [videosVisible, toggleVideosVisible] = useBool(fieldType && (fieldType.indexOf("video") >= 0))
 
     return <Card variant="outlined">
         <CardActions className={classes.fieldActions}>
             <IconButton size="small" onClick={onStar} className={classes.leftButton} aria-label="star">
-                {isStarred ? <Star fontSize="small" color="primary"/> : <StarOutline fontSize="small" color="action"/> }
+                {isStarred ? <Star fontSize="small" color="primary"/> : <StarOutline fontSize="small" color="action"/>}
             </IconButton>
             <IconButton size="small" onClick={toggleTextVisible} className={classes.rightButton} aria-label="add">
                 <TextFields fontSize="small" color={textVisible ? "primary" : "action"}/>

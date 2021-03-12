@@ -7,8 +7,8 @@ export const invoke = (action, version, params={}) =>
 
 // CUSTOM HOOKS
 
-export const useBool = (defaultValue = false) => {
-    const [value, setValue] = useState(defaultValue)
+export const useBool = (defaultValue) => {
+    const [value, setValue] = useState(!!defaultValue)
     const toggleValue = () => setValue(!value)
     return [value, toggleValue]
 }

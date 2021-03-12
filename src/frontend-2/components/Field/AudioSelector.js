@@ -71,9 +71,11 @@ const AudioSelector = ({visible, defaultQuery = "", updateSelection}) => {
     }
 
     useEffect(() => {
-        setQuery(defaultQuery)
-        if (query && query.length > 0) {
-            searchQuery()
+        if (defaultQuery !== query) {
+            setQuery(defaultQuery)
+            if (query && query.length > 0) {
+                searchQuery()
+            }
         }
     }, [defaultQuery])
 
