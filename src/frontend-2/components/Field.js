@@ -12,9 +12,11 @@ import {
     InputAdornment,
     GridList,
     GridListTile,
-    Box
+    Box,
+    CardActionArea,
+    CardMedia
 } from "@material-ui/core";
-import React, {useState} from "react";
+import React, {useState, useEffect} from "react";
 import {Image, Mic, Movie, Search} from "@material-ui/icons";
 import useSWR from "swr";
 import axios from "axios";
@@ -40,6 +42,10 @@ const useStyles = makeStyles(theme => ({
         // Promote the list into his own layer on Chrome. This cost memory but helps keeping high FPS.
         transform: 'translateZ(0)',
     },
+    image: {
+        width: "100%",
+        height: "100%"
+    }
 }));
 
 const useBool = (defaultValue = false) => {
@@ -51,11 +57,28 @@ const useBool = (defaultValue = false) => {
 const ImageSelector = ({visible, defaultQuery=""}) => {
     const classes = useStyles()
     const [query, setQuery] = useState(defaultQuery)
+    const [selection, setSelection] =useState([])
+    const [options, setOptions] = useState([])
 
     const imageFetcher = url => axios.post(url, {query})
-    const {data, error, ...rest} = useSWR("/api/resources/images", imageFetcher)
+    const {data, error} = useSWR("/api/resources/images", imageFetcher)
     const images = data?.data?.response ?? []
-    console.log(rest, data, error)
+
+    useEffect(() => {
+        if (images && images.length > 0) {
+            setOptions(images)
+        }
+    }, [])
+
+    const selectImage = (image) => {
+        setSelection([...selection, image])
+        setOptions(options.filter(option => option.img !== image.img))
+    }
+
+    const deselectImage = (image) => {
+        setOptions([image, ...options])
+        setSelections(selections.filter(selection => selection.img !== image.img))
+    }
 
     return <Collapse in={visible} timeout="auto" unmountOnExit>
         <Divider/>
@@ -83,10 +106,31 @@ const ImageSelector = ({visible, defaultQuery=""}) => {
                 }}
             />
             <Box mt={4}>
-            <GridList cellHeight={160} className={classes.gridList} cols={4}>
-                {images.map((tile) => (
-                    <GridListTile key={tile.img} cols={2.5}>
-                        <img src={tile.img} alt={tile.title} />
+                <GridList cellHeight={50}  cols={10}>
+                    {selection.map((tile) => (
+                        <GridListTile key={tile.img} cols={1}>
+                            <Card>
+                                <CardActionArea onClick={() => deselectImage(tile)}>
+                                    <CardMedia>
+                                        <img src={tile.img} alt={tile.title} className={classes.image}/>
+                                    </CardMedia>
+                                </CardActionArea>
+                            </Card>
+                        </GridListTile>
+                    ))}
+                </GridList>
+            </Box>
+            <Box mt={4}>
+            <GridList cellHeight={160} className={classes.gridList} cols={2.5}>
+                {options.map((tile) => (
+                    <GridListTile key={tile.img} cols={1}>
+                        <Card>
+                            <CardActionArea onClick={() => selectImage(tile)}>
+                                <CardMedia>
+                                    <img src={tile.img} alt={tile.title} className={classes.image}/>
+                                </CardMedia>
+                            </CardActionArea>
+                        </Card>
                     </GridListTile>
                 ))}
             </GridList>
