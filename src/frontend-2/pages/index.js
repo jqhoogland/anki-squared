@@ -1,8 +1,20 @@
-import React, {useState, useEffect} from "react"
-import Head from 'next/head'
-import {FormControl, InputLabel, Select, MenuItem, Container, TextField, Grid} from "@material-ui/core"
-import {makeStyles} from "@material-ui/core"
+import _ from "lodash"
+import React, {useEffect, useState} from "react"
+import {
+    Button,
+    CircularProgress,
+    Container,
+    FormControl,
+    Grid,
+    InputLabel,
+    LinearProgress,
+    makeStyles,
+    MenuItem,
+    Select,
+    TextField
+} from "@material-ui/core"
 import useSWR from "swr"
+import axios from "axios"
 
 const useStyles = makeStyles(theme => ({
     formControl: {
@@ -22,14 +34,17 @@ const Chooser = ({label, chooseItem, defaultItem, path}) => {
     const {data, error} = useSWR(path)
     const options = data?.response ?? []
 
-    useEffect(() => {
-        setItem(options[0])
-    }, [options])
-
     const _setItem = (item) => {
         setItem(item)
         chooseItem(item)
     }
+
+    useEffect(() => {
+        if (options && options.length > 0) {
+            _setItem(options[0])
+        }
+    }, [options])
+
 
     return <FormControl className={classes.formControl}>
         <InputLabel id="demo-simple-select-label">{label}</InputLabel>
@@ -39,14 +54,22 @@ const Chooser = ({label, chooseItem, defaultItem, path}) => {
             value={item}
             onChange={({target: {value}}) => _setItem(value)}
         >
-            {options && options.map((option, i) => <MenuItem key={`key${i}`} value={option}>{option}</MenuItem>)}
+            {options ? options.map((option, i) => <MenuItem key={`key${i}`} value={option}>{option}</MenuItem>)
+            : <MenuItem value={item}>{item}</MenuItem>}
+
         </Select>
+        {!item && <LinearProgress/>}
     </FormControl>
 }
 
-const Field = ({label}) => {
+const Field = ({label, updateField}) => {
     const classes = useStyles()
     const [value, setValue] = useState("")
+
+    const handleChange = ({target: { value }}) => {
+        setValue(value)
+        updateField(label, value)
+    }
 
     return <FormControl className={classes.formControl}>
         <TextField
@@ -54,31 +77,66 @@ const Field = ({label}) => {
             label={label}
             multiline
             value={value}
-            onChange={({target: {value}}) => setValue(value)}
+            onChange={handleChange}
             margin="normal" variant="outlined"/>
 
     </FormControl>
 }
 
+const createCardOptions = {
+    "allowDuplicate": false,
+}
 
 export default function Home() {
-    const [deck, setDeck] = useState("Default")
-    const [model, setModel] = useState("Basic")
+    const [deckName, setDeck] = useState("Default")
+    const [modelName, setModel] = useState("Basic")
+    const [fields, setFields] = useState({})
 
-    const {data: fieldsResponse, error} = useSWR(`/api/models/fields/${model}`)
-    const fields = fieldsResponse?.response?.result ?? []
+    const {data: fieldsResponse, error} = useSWR(`/api/models/fields/${modelName}`)
+    const fieldNames = fieldsResponse?.response?.result ?? []
+
+    useEffect(() => {
+        if (fieldNames && fieldNames.length > 0) {
+            const _fields = _.zipObject(fieldNames, fieldNames.map((_, i) => {
+                if (i < Object.keys(fields).length) {
+                    return Object.values(fields)[i]
+                }
+                return ""
+            }))
+            setFields(_fields)
+        }
+    }, [fieldNames])
+
+    const tags = []
+    const audio = []
+    const picture = []
+    const video = []
+
+    const handleCreate = () => {
+        axios.post(`/api/notes/create`, {deckName, modelName, fields, options: createCardOptions, tags, audio, video, picture})
+    }
+
+    const handleChangeField = (fieldName, value) => {
+        setFields({...fields, [fieldName]: value})
+    }
 
     return (
         <Container maxWidth="md">
             <Grid container spacing={1}>
-                <Grid item sm={6}>
-                    <Chooser label="Deck" chooseItem={setDeck} defaultItem={deck} path="/api/decks"/>
+                <Grid item>
+                    <Chooser label="Deck" chooseItem={setDeck} defaultItem={deckName} path="/api/decks"/>
                 </Grid>
-                <Grid item sm={6}>
-                    <Chooser label="Model" chooseItem={setModel} defaultItem={model} path="/api/models"/>
+                <Grid item>
+                    <Chooser label="Model" chooseItem={setModel} defaultItem={modelName} path="/api/models"/>
                 </Grid></Grid>
             <Grid container spacing={1}>
-                {fields.map(field => <Grid item sm={6}><Field label={field}/></Grid>)}
+                {!fieldNames.length && <Grid item sm={12}><CircularProgress/></Grid>}
+                {fieldNames.map(fieldName => <Grid item sm={6}><Field label={fieldName} updateField={handleChangeField}/></Grid>)}
+            </Grid>
+            <Grid container spacing={1}>
+                <Grid item>
+                <Button variant="contained" onClick={handleCreate}>Create</Button>
+                </Grid>
             </Grid>
         </Container>
     )
