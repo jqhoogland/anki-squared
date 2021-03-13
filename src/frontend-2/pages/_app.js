@@ -2,7 +2,6 @@ import '../styles/globals.css'
 import React from "react";
 import Head from "next/head";
 import Container from "@material-ui/core/Container"
-import Box from "@material-ui/core/Box"
 import theme from "../theme";
 import {ThemeProvider} from "@material-ui/core"
 import LanguageProvider from "../components/LanguageProvider";
@@ -38,9 +37,7 @@ function MyApp({Component, pageProps}) {
                     <LanguageProvider>
                         <main>
                             <NavBar/>
-                            <Box my={20}>
-                                <Component {...pageProps} />
-                            </Box>
+                            <Component {...pageProps} />
                         </main>
                     </LanguageProvider>
                 </DeckProvider>

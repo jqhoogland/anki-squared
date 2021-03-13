@@ -56,6 +56,9 @@ const useStyles = makeStyles({
         ...theme.mixins.toolbar,
         justifyContent: 'flex-end',
     },
+    topPadding: {
+        marginBottom: theme.spacing(5)
+    }
 })
 
 const drawerIcons = [
@@ -103,7 +106,7 @@ const NavBar = ({window}) => {
 
     const trigger = useScrollTrigger({target: window ? window() : undefined});
 
-    return <Slide appear={false} direction="down" in={!trigger}>
+    return <div><Slide appear={true} direction="down" in={!trigger}>
         <AppBar color="secondary">
             <Toolbar>
                 <IconButton
@@ -136,6 +139,8 @@ const NavBar = ({window}) => {
             <NavDrawer open={open} onClose={() => setOpen(false)}/>
         </AppBar>
     </Slide>
+        <Toolbar className={classes.topPadding}/>
+    </div>
 }
 
 export default NavBar
