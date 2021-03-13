@@ -15,7 +15,7 @@ import {
 import Rating from "@material-ui/lab/Rating";
 import React, {useEffect, useState} from "react";
 import axios from "axios";
-import {Mic, Search} from "@material-ui/icons";
+import {Mic, RadioButtonChecked, RadioButtonUncheckedOutlined, Search} from "@material-ui/icons";
 import {useLanguage} from "../LanguageProvider";
 
 const useStyles = makeStyles(theme => ({
@@ -30,14 +30,18 @@ const useStyles = makeStyles(theme => ({
     audio: {
         width: "100%",
         height: "100%"
+    },
+    selected: {
+        borderWidth: 5
     }
 }));
 
-const AudioCard = ({audio, onClick}) => {
-    return <Card variant="outlined">
+const AudioCard = ({audio, selected, onClick}) => {
+    const classes = useStyles()
+    return <Card variant="outlined" className={selected && classes.selected}>
         <CardActionArea onClick={onClick}>
             <CardHeader
-                avatar={<Rating name="disabled" value={3 * audio.rate / audio.num_votes} max={3} disabled/>}
+                avatar={<IconButton>{selected ? <RadioButtonChecked/> : <RadioButtonUncheckedOutlined max={3} disabled/>}</IconButton>}
                 title={audio.username}
                 action={
                     <audio controls>
@@ -125,12 +129,11 @@ const AudioSelector = ({visible, defaultQuery = "", updateSelection}) => {
                 <Grid container spacing={1}>
                     {selection.map((tile) => (
                         <Grid item xs={12}>
-                            <AudioCard audio={tile} onClick={() => deselectAudio(tile)}/>
+                            <AudioCard audio={tile} onClick={() => deselectAudio(tile)} selected/>
                         </Grid>
                     ))}
                 </Grid>
             </Box>
-            <Divider/>
             <Box mt={4}>
                 <Grid container spacing={1}>
                     {
