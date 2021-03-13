@@ -24,7 +24,7 @@ import {
 } from "@material-ui/icons"
 import theme from "../theme";
 import Link from "next/link"
-import {useDeck} from "./DeckProvider";
+import {useDeck} from "../providers/DeckProvider";
 import Chooser from "./Chooser";
 import LanguagePicker from "./LanguagePicker";
 

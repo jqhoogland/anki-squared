@@ -16,7 +16,7 @@ import Rating from "@material-ui/lab/Rating";
 import React, {useEffect, useState} from "react";
 import axios from "axios";
 import {Mic, RadioButtonChecked, RadioButtonUncheckedOutlined, Search} from "@material-ui/icons";
-import {useLanguage} from "../LanguageProvider";
+import {useLanguage} from "../../providers/LanguageProvider";
 
 const useStyles = makeStyles(theme => ({
     margin: {

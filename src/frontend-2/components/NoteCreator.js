@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react"
-import {useDeck} from "./DeckProvider";
+import {useDeck} from "../providers/DeckProvider";
 import useSWR from "swr";
 import _ from "lodash";
 import Cookies from "js-cookie";

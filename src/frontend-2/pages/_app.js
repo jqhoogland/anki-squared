@@ -5,8 +5,8 @@ import Container from "@material-ui/core/Container"
 import Box from "@material-ui/core/Box"
 import theme from "../theme";
 import {ThemeProvider} from "@material-ui/core"
-import LanguageProvider from "../components/LanguageProvider";
-import DeckProvider from "../components/DeckProvider";
+import LanguageProvider from "../providers/LanguageProvider";
+import DeckProvider from "../providers/DeckProvider";
 import NavBar from "../components/NavBar";
 
 function MyApp({Component, pageProps}) {

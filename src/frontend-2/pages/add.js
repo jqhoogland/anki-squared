@@ -10,7 +10,7 @@ import Chooser from "../components/Chooser";
 import Field from "../components/Field"
 import TagPanel from "../components/TagPanel"
 import {getFileNameFromUrl} from "../utils";
-import {useDeck} from "../components/DeckProvider";
+import {useDeck} from "../providers/DeckProvider";
 import NoteCreator from "../components/NoteCreator";
 
 

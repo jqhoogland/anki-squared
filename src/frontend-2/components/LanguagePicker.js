@@ -1,7 +1,7 @@
 import {FormControl, InputLabel, LinearProgress, makeStyles, MenuItem, Select} from "@material-ui/core";
 import React, {useEffect, useState} from "react";
 import useSWR from "swr";
-import {useLanguage} from "./LanguageProvider";
+import {useLanguage} from "../providers/LanguageProvider";
 
 const useStyles = makeStyles(theme => ({
     formControl: {

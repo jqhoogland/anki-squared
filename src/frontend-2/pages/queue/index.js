@@ -3,7 +3,7 @@ import {Box, Card, CardActionArea, CardHeader, CircularProgress, Container, Grid
 import {AddCircle as AddCircleIcon  }from "@material-ui/icons"
 import Link from "next/link"
 import useSWR from "swr";
-import {useDeck} from "../../components/DeckProvider";
+import {useDeck} from "../../providers/DeckProvider";
 import _ from "lodash"
 
 const QueueNote = ({noteId, modelName, tags, fields, cards}) => {
