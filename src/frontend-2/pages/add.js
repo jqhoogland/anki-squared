@@ -39,7 +39,7 @@ const makeMedia = (fieldName, {url, filename}) => ({
 const useMedia = (defaultValue = []) => {
     const [media, setMedia] = useState(defaultValue)
 
-    const updateMedia = (fieldName, selection) => {
+    const updateMedia = (fieldName, selection = []) => {
         setMedia([
             ...media.filter((media) => !media.fields.find(field => field === fieldName)),
             ...selection.map(media => makeMedia(fieldName, media))
@@ -47,6 +47,7 @@ const useMedia = (defaultValue = []) => {
     }
     return [media, updateMedia]
 }
+
 
 export default function Home() {
     const classes = useStyles()
@@ -61,6 +62,7 @@ export default function Home() {
     const [defaultQuery, setDefaultQuery] = useState("")
     const updateDefaultQuery = () => setDefaultQuery(fields[starredField])
     const [focus, setFocus] = useState(fields[starredField])
+    const [isRefreshing, setRefreshing] = useState(false)
 
     const {
         data: fieldsResponse,
@@ -81,11 +83,30 @@ export default function Home() {
             }))
             setFields(_fields)
             setStarredField(fieldNames[0])
-            setFieldTypes(JSON.parse(Cookies.get(modelName)))
+            try {
+                setFieldTypes(JSON.parse(Cookies.get(modelName)))
+            } catch (e) {
+                setFieldTypes({})
+            }
         }
     }, [fieldNames])
 
+    useEffect(() => {
+        if (isRefreshing) {
+            setTimeout(() => {
+                setRefreshing(false)
+            }, 50)
+        }
+    }, [isRefreshing])
+
     const video = []
+
+    const clearNote = () => {
+        setRefreshing(true)
+        setFields(_.mapValues(fields, () => ""))
+        _updatePicture([])
+        _updateAudio([])
+    }
 
     const handleCreate = () => {
         saveFieldTypes({modelName, fields, audio, video, picture})
@@ -99,6 +120,7 @@ export default function Home() {
             video,
             picture
         })
+        clearNote()
     }
 
     const updateText = (fieldName, value) => {
@@ -122,10 +144,11 @@ export default function Home() {
         if (fieldName === starredField) {
             updateDefaultQuery()
         }
-        const nextIndex = Math.min(fieldNames.indexOf(fieldName)+1, fieldNames.length)
+        const nextIndex = Math.min(fieldNames.indexOf(fieldName) + 1, fieldNames.length)
         setFocus(fieldNames[nextIndex])
 
     }
+
 
     return (
         <Container maxWidth="md">
@@ -141,33 +164,37 @@ export default function Home() {
                 </Grid>
             </Grid>
             <Box mt={2}>
-                <Grid container spacing={2}>
-                    {!fieldNames.length && <Grid item sm={12}><CircularProgress/></Grid>}
-                    {fieldNames.map(fieldName => (
-                        <Grid item md={6} xs={12}>
-                            <Field
-                                label={fieldName}
-                                isStarred={fieldName === starredField}
-                                onStar={() => setStarredField(fieldName)}
-                                handleReturn={() => handleReturn(fieldName)}
-                                updateText={(text) => updateText(fieldName, text)}
-                                updateImages={(selection) => updatePicture(fieldName, selection)}
-                                updateAudio={(selection) => updateAudio(fieldName, selection)}
-                                defaultQuery={defaultQuery}
-                                fieldType={fieldTypes[fieldName]}
-                                isFocused={fieldName === focus}
-                            />
-                        </Grid>)
-                    )}
-                    <Grid item xs={12}>
-                        <Box my={5}>
-                            <Button color="primary" variant="contained" onClick={handleCreate}>Create</Button>
-                        </Box>
+                {isRefreshing ? (
+                    <CircularProgress/>
+                ) : (
+                    <Grid container spacing={2}>
+                        {!fieldNames.length && <Grid item sm={12}><CircularProgress/></Grid>}
+                        {fieldNames.map(fieldName => (
+                            <Grid item md={6} xs={12}>
+                                <Field
+                                    label={fieldName}
+                                    isStarred={fieldName === starredField}
+                                    onStar={() => setStarredField(fieldName)}
+                                    handleReturn={() => handleReturn(fieldName)}
+                                    updateText={(text) => updateText(fieldName, text)}
+                                    updateImages={(selection) => updatePicture(fieldName, selection)}
+                                    updateAudio={(selection) => updateAudio(fieldName, selection)}
+                                    defaultQuery={defaultQuery}
+                                    fieldType={fieldTypes[fieldName]}
+                                    isFocused={fieldName === focus}
+                                />
+                            </Grid>)
+                        )}
+                        <Grid item xs={12}>
+                            <Box my={5}>
+                                <Button color="primary" variant="contained" onClick={handleCreate}>Create</Button>
+                            </Box>
+                        </Grid>
+                        <Grid item xs={12}>
+                            <TagPanel defaultTags={tags} updateTags={setTags}/>
+                        </Grid>
                     </Grid>
-                    <Grid item xs={12}>
-                        <TagPanel defaultTags={tags} updateTags={setTags}/>
-                    </Grid>
-                </Grid>
+                )}
             </Box>
         </Container>
     )

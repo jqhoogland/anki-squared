@@ -11,7 +11,7 @@ const useStyles = makeStyles(theme => ({
 }));
 
 
-const TextSelector = ({visible, label, defaultValue = "", updateText, handleReturn, isFocused}) => {
+const TextSelector = ({visible, label, defaultValue = "", updateText, handleReturn, isFocused, autoFocus}) => {
     const classes = useStyles()
     const [value, setValue] = useState(defaultValue)
     const inputRef = useRef()
@@ -29,10 +29,18 @@ const TextSelector = ({visible, label, defaultValue = "", updateText, handleRetu
     }
 
     useEffect(() => {
-        if (isFocused) {
+        if (isFocused && inputRef.current) {
             inputRef.current.focus()
         }
     }, [isFocused])
+
+    useEffect(() => {
+        if (autoFocus && inputRef.current) {
+            inputRef.current.focus()
+        }
+    }, [autoFocus])
+
+
 
     return <Collapse in={visible} timeout="auto" unmountOnExit>
         <Divider/>
@@ -47,6 +55,7 @@ const TextSelector = ({visible, label, defaultValue = "", updateText, handleRetu
                     onChange={handleChange}
                     onKeyPress={handleKeyPress}
                     margin="dense"
+                    autoFocus={autoFocus}
                 />
             </FormControl>
         </CardContent>

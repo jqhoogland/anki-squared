@@ -78,7 +78,7 @@ const Field = ({
             </IconButton>
         </CardActions>
         <TextSelector label={label} visible={textVisible} defaultQuery={defaultQuery} updateText={updateText}
-                      handleReturn={handleReturn} isFocused={isFocused}/>
+                      handleReturn={handleReturn} isFocused={isFocused} autoFocus={isStarred}/>
         <ImageSelector visible={imagesVisible} defaultQuery={defaultQuery} updateSelection={updateImages}/>
         <AudioSelector visible={audioVisible} defaultQuery={defaultQuery} updateSelection={updateAudio}/>
     </Card>
