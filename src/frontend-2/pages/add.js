@@ -17,16 +17,9 @@ import NoteCreator from "../components/NoteCreator";
 const onCreate = note => axios.post(`/api/notes/create`, note)
 
 export default function Home() {
-    const {modelName} = useDeck()
+    const {modelName, fieldNames} = useDeck()
     const [fields, setFields] = useState(false)
 
-    const {
-        data: fieldsResponse,
-    } = useSWR(`/api/models/fields/${modelName}`, (url) => window.fetch(url).then(res => res.json()), {
-        revalidateOnReconnect: false,
-        revalidateOnFocus: false
-    })
-    const fieldNames = fieldsResponse?.response?.result ?? []
 
     useEffect(() => {
         if (fieldNames && fieldNames.length > 0) {

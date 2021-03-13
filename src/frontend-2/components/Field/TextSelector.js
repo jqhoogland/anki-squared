@@ -11,9 +11,9 @@ const useStyles = makeStyles(theme => ({
 }));
 
 
-const TextSelector = ({visible, label, defaultValue = "", updateText, handleReturn, isFocused, autoFocus}) => {
+const TextSelector = ({visible, label, value: _value="", defaultValue, updateText, handleReturn, isFocused, autoFocus}) => {
     const classes = useStyles()
-    const [value, setValue] = useState(defaultValue)
+    const [value, setValue] = useState(defaultValue ?? _value)
     const inputRef = useRef()
 
     const handleChange = ({target }) => {
@@ -40,7 +40,9 @@ const TextSelector = ({visible, label, defaultValue = "", updateText, handleRetu
         }
     }, [autoFocus])
 
-
+    useEffect(() => {
+        setValue(_value)
+    }, [_value])
 
     return <Collapse in={visible} timeout="auto" unmountOnExit>
         <Divider/>

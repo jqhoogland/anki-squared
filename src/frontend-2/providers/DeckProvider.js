@@ -20,8 +20,15 @@ const useResource = (defaultValue, path) => {
 const DeckProvider = ({children}) => {
     const [deckName, decks, setDeck] = useResource("Default", "/api/decks")
     const [modelName, models, setModel] = useResource("Basic", "/api/models")
+    const {
+        data: fieldsResponse,
+    } = useSWR(`/api/models/fields/${modelName}`, (url) => window.fetch(url).then(res => res.json()), {
+        revalidateOnReconnect: false,
+        revalidateOnFocus: false
+    })
+    const fieldNames = fieldsResponse?.response?.result ?? []
 
-    return <DeckContext.Provider value={{deckName, decks, setDeck, modelName, models, setModel}}>
+    return <DeckContext.Provider value={{deckName, decks, setDeck, modelName, models, setModel, fieldNames}}>
         {children}
     </DeckContext.Provider>
 }
