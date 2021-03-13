@@ -6,6 +6,8 @@ import Box from "@material-ui/core/Box"
 import theme from "../theme";
 import {ThemeProvider} from "@material-ui/core"
 import LanguageProvider from "../components/LanguageProvider";
+import DeckProvider from "../components/DeckProvider";
+import NavBar from "../components/NavBar";
 
 function MyApp({Component, pageProps}) {
     React.useEffect(() => {
@@ -32,23 +34,26 @@ function MyApp({Component, pageProps}) {
                 <meta name="viewport" content="minimum-scale=1, initial-scale=1, width=device-width"/>
             </Head>
             <ThemeProvider theme={theme}>
-                <LanguageProvider>
-            <main>
-                <Box my={4}>
-                <Component {...pageProps} />
-                </Box>
-            </main>
-                </LanguageProvider>
+                <DeckProvider>
+                    <LanguageProvider>
+                        <main>
+                            <NavBar/>
+                            <Box my={20}>
+                                <Component {...pageProps} />
+                            </Box>
+                        </main>
+                    </LanguageProvider>
+                </DeckProvider>
             </ThemeProvider>
             <footer>
                 <Container>
-                <a
-                    href="https://github.com/jqhoogland"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                    {/* Author: Jesse Hoogland */}
-                </a>
+                    <a
+                        href="https://github.com/jqhoogland"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        {/* Author: Jesse Hoogland */}
+                    </a>
                 </Container>
             </footer>
         </>)

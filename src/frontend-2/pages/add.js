@@ -10,15 +10,13 @@ import Chooser from "../components/Chooser";
 import Field from "../components/Field"
 import TagPanel from "../components/TagPanel"
 import {getFileNameFromUrl} from "../utils";
+import {useDeck} from "../components/DeckProvider";
 
 
 const createCardOptions = {
     "allowDuplicate": false,
 }
 
-const useStyles = makeStyles({
-    languagePicker: {marginLeft: "auto"}
-})
 
 const saveFieldTypes = ({modelName, fields, audio, video, picture}) => {
     const fieldTypes = _.mapValues(fields, text => text.length > 0 ? ["text"] : [])
@@ -50,9 +48,7 @@ const useMedia = (defaultValue = []) => {
 
 
 export default function Home() {
-    const classes = useStyles()
-    const [deckName, setDeck] = useState("Default")
-    const [modelName, setModel] = useState("Basic")
+    const {deckName, modelName} = useDeck()
     const [fields, setFields] = useState({})
     const [tags, setTags] = useState([])
     const [picture, _updatePicture] = useMedia([])
@@ -152,17 +148,6 @@ export default function Home() {
 
     return (
         <Container maxWidth="md">
-            <Grid container spacing={2}>
-                <Grid item>
-                    <Chooser label="Deck" chooseItem={setDeck} defaultItem={deckName} path="/api/decks"/>
-                </Grid>
-                <Grid item>
-                    <Chooser label="Model" chooseItem={setModel} defaultItem={modelName} path="/api/models"/>
-                </Grid>
-                <Grid item className={classes.languagePicker}>
-                    <LanguagePicker label="Language"/>
-                </Grid>
-            </Grid>
             <Box mt={2}>
                 {isRefreshing ? (
                     <CircularProgress/>
