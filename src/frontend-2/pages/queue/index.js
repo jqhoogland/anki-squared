@@ -5,12 +5,13 @@ import Link from "next/link"
 import useSWR from "swr";
 import {useDeck} from "../../providers/DeckProvider";
 import _ from "lodash"
+import {useQueue} from "../../providers/QueueProvider";
 
-const QueueNote = ({noteId, modelName, tags, fields, cards}) => {
+const QueueNote = ({index, noteId, modelName, tags, fields, cards}) => {
     const repField = _.find(fields, {"order": 0})
 
     return (<Card>
-        <Link passHref href={`/queue/${noteId}`}>
+        <Link passHref href={`/queue/${index}`}>
             <CardActionArea>
                 <CardHeader title={<Typography variant="h5">{repField.value}</Typography>}/>
             </CardActionArea>
@@ -20,17 +21,13 @@ const QueueNote = ({noteId, modelName, tags, fields, cards}) => {
 }
 
 const Queue = ({}) => {
-    const {deckName} = useDeck()
-    const {data} = useSWR(`/api/notes/queue/${encodeURI(deckName)}`)
-    const notes = data?.response ?? false
-
-    console.log(notes)
+    const { queue: notes } = useQueue()
     return <Box my={5}><Container maxWidth="md">
         <Grid container spacing={5}>
             {!notes ? <CircularProgress/> :
-            notes.map(({noteId, modelName, tags, fields, cards}) => (
+            notes.map(({noteId, modelName, tags, fields, cards}, index) => (
                 <Grid item xs={12}>
-                <QueueNote noteId={noteId} modelName={modelName} tags={tags} fields={fields} cards={cards}/>
+                <QueueNote index={index} noteId={noteId} modelName={modelName} tags={tags} fields={fields} cards={cards}/>
                 </Grid>
             ))}
         </Grid>

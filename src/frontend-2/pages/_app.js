@@ -2,12 +2,12 @@ import '../styles/globals.css'
 import React from "react";
 import Head from "next/head";
 import Container from "@material-ui/core/Container"
-import Box from "@material-ui/core/Box"
 import theme from "../theme";
 import {ThemeProvider} from "@material-ui/core"
 import LanguageProvider from "../providers/LanguageProvider";
 import DeckProvider from "../providers/DeckProvider";
 import NavBar from "../components/NavBar";
+import QueueProvider from "../providers/QueueProvider";
 
 function MyApp({Component, pageProps}) {
     React.useEffect(() => {
@@ -35,12 +35,14 @@ function MyApp({Component, pageProps}) {
             </Head>
             <ThemeProvider theme={theme}>
                 <DeckProvider>
-                    <LanguageProvider>
-                        <main>
-                            <NavBar/>
-                            <Component {...pageProps} />
-                        </main>
-                    </LanguageProvider>
+                    <QueueProvider>
+                        <LanguageProvider>
+                            <main>
+                                <NavBar/>
+                                <Component {...pageProps} />
+                            </main>
+                        </LanguageProvider>
+                    </QueueProvider>
                 </DeckProvider>
             </ThemeProvider>
             <footer>
