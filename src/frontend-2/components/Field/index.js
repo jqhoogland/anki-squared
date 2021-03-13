@@ -49,7 +49,8 @@ const Field = ({
                    updateAudio,
                    updateText,
                    updateVideo,
-                   isFocused
+                   isFocused,
+    defaultValue
                }) => {
     const classes = useStyles()
 
@@ -77,8 +78,16 @@ const Field = ({
                 <Movie fontSize="small"/>
             </IconButton>
         </CardActions>
-        <TextSelector label={label} visible={textVisible} defaultQuery={defaultQuery} updateText={updateText}
-                      handleReturn={handleReturn} isFocused={isFocused} autoFocus={isStarred}/>
+        <TextSelector
+            label={label}
+            visible={textVisible}
+            defaultQuery={defaultQuery}
+            defaultValue={defaultValue}
+            updateText={updateText}
+            handleReturn={handleReturn}
+            isFocused={isFocused}
+            autoFocus={isStarred}
+        />
         <ImageSelector visible={imagesVisible} defaultQuery={defaultQuery} updateSelection={updateImages}/>
         <AudioSelector visible={audioVisible} defaultQuery={defaultQuery} updateSelection={updateAudio}/>
     </Card>

@@ -6,7 +6,8 @@ export default async (req, res) => {
     const {deck} = req.query
     console.log("Retrieving queue for", deck)
 
-    /** Queue items are:
+    /**
+     * Queue items are:
      * 1. Tagged "queue"
      * 2. Suspended
      */
