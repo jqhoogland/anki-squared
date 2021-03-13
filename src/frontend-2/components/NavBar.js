@@ -18,8 +18,6 @@ import {
 } from "@material-ui/core";
 import {
     AddCircle,
-    ChevronRight as ChevronRightIcon,
-    ChevronLeft as ChevronLeftIcon,
     Home,
     List as ListIcon,
     Menu as MenuIcon
@@ -27,7 +25,6 @@ import {
 import theme from "../theme";
 import Link from "next/link"
 import {useDeck} from "./DeckProvider";
-import clsx from "clsx";
 import Chooser from "./Chooser";
 import LanguagePicker from "./LanguagePicker";
 
@@ -35,9 +32,6 @@ const drawerWidth = 240
 
 const useStyles = makeStyles({
     languagePicker: {marginLeft: "auto"},
-    menuButton: {
-        marginRight: theme.spacing(2)
-    },
     hide: {
         display: 'none',
     },
@@ -61,82 +55,96 @@ const useStyles = makeStyles({
     }
 })
 
-const drawerIcons = [
+const drawerPaths = [
     {value: 'Home', icon: <Home/>, destination: "/"},
     {value: 'Queue', icon: <ListIcon/>, destination: "/queue"},
     {value: 'Add Note', icon: <AddCircle/>, destination: "/add"}
 ]
 
-const NavDrawer = ({open, onClose}) => {
+function NavDrawer({ options = [] }) {
     const classes = useStyles()
+    const [isExpanded, setExpanded] = React.useState(false);
 
-    return <Drawer
-        className={classes.drawer}
-        variant="persistent"
-        anchor="left"
-        open={open}
-        classes={{
-            paper: classes.drawerPaper,
-        }}
-    >
-        <div className={classes.drawerHeader}>
-            <IconButton onClick={onClose}>
-                {theme.direction === 'ltr' ? <ChevronLeftIcon/> : <ChevronRightIcon/>}
+    const toggleDrawer = (event) => {
+        if (event.type === "keydown" && (event.key === "Tab" || event.key === "Shift")) {
+            return;
+        }
+        setExpanded(!isExpanded);
+    };
+
+    return (
+        <div>
+            <IconButton
+                aria-label="display more actions"
+                edge="end"
+                color="inherit"
+                onClick={toggleDrawer}
+            >
+                <MenuIcon />
             </IconButton>
+            <Drawer anchor="left" open={isExpanded} onClose={toggleDrawer}>
+                <div
+                    className={classes.drawerPaper}
+                    role="presentation"
+                    onClick={toggleDrawer}
+                    onKeyDown={toggleDrawer}
+                >
+                    <List>
+                        {options.map(({ value, icon, destination }) => (
+                            <Link href={destination} passHref>
+                                <ListItem button key={value} component="a">
+                                    {icon && <ListItemIcon>{icon}</ListItemIcon>}
+                                    <ListItemText primary={value} />
+                                </ListItem>
+                            </Link>
+                        ))}
+                    </List>
+                </div>
+            </Drawer>
         </div>
-        <Divider/>
-        <List>
-            {drawerIcons.map(({value, icon, destination}, index) => (
-                <Link href={destination} passHref>
-                    <ListItem button key={value} component="a">
-                        <ListItemIcon>{icon}</ListItemIcon>
-                        <ListItemText primary={value}/>
-                    </ListItem>
-                </Link>
-            ))}
-        </List>
-    </Drawer>
+    );
 }
 
 
 const NavBar = ({window}) => {
     const classes = useStyles()
     const {deckName, modelName, decks, models, setDeck, setModel} = useDeck()
-    const [open, setOpen] = useState()
+    const [open, setOpen] = useState(false)
 
     const trigger = useScrollTrigger({target: window ? window() : undefined});
 
-    return <div><Slide appear={true} direction="down" in={!trigger}>
+    const toggleDrawer = event => {
+        if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) {
+            return;
+        }
+        setOpen(!open)
+    }
+
+    return <div
+        onKeyDown={toggleDrawer}
+        onClick={toggleDrawer}
+    ><Slide appear={true} direction="down" in={!trigger}>
         <AppBar color="secondary">
             <Toolbar>
-                <IconButton
-                    color="inherit"
-                    aria-label="open drawer"
-                    edge="start"
-                    onClick={() => setOpen(true)}
-                    className={clsx(classes.menuButton, open && classes.hide)}
-                >
-                    <MenuIcon/>
-                </IconButton>
+                <NavDrawer options={drawerPaths}/>
                 <Container>
                     <Box my={2}>
                         <Grid container spacing={1}>
-                            <Grid item>
+                            <Grid item xs={5}>
                                 <Chooser label="Deck" item={deckName} setItem={setDeck} options={decks}
                                          defaultItem={deckName}/>
                             </Grid>
-                            <Grid item>
+                            <Grid item xs={5}>
                                 <Chooser label="Model" item={modelName} setItem={setModel} options={models}
                                          defaultItem={modelName}/>
                             </Grid>
-                            <Grid item className={classes.languagePicker}>
+                            <Grid item xs={2} className={classes.languagePicker}>
                                 <LanguagePicker label="Language"/>
                             </Grid>
                         </Grid>
                     </Box>
                 </Container>
             </Toolbar>
-            <NavDrawer open={open} onClose={() => setOpen(false)}/>
         </AppBar>
     </Slide>
         <Toolbar className={classes.topPadding}/>
