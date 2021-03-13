@@ -8,24 +8,8 @@ const useStyles = makeStyles(theme => ({
     },
 }));
 
-const Chooser = ({label, chooseItem, defaultItem, path}) => {
+const Chooser = ({label, item, setItem, defaultItem, options}) => {
     const classes = useStyles()
-    const [item, _setItem] = useState(defaultItem)
-
-    const {data, error} = useSWR(path, (url) => window.fetch(url).then(res => res.json()), {revalidateOnReconnect: false, revalidateOnFocus: false})
-    const options = data?.response ?? []
-
-    const setItem = (item) => {
-        _setItem(item)
-        chooseItem(item)
-    }
-
-    useEffect(() => {
-        if (options && options.length > 0) {
-            setItem(options[0])
-        }
-    }, [options])
-
 
     return (
         <FormControl className={classes.formControl}>
