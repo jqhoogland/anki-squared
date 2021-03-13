@@ -3,7 +3,7 @@ import {Card, CardActionArea, CardHeader, Container, Grid, Typography} from "@ma
 import {List as ListIcon,AddCircle as AddCircleIcon  }from "@material-ui/icons"
 import Link from "next/link"
 
-const Queue = () => {
+const Index = () => {
     return <Container maxWidth="md">
         <Grid container spacing={2}>
             <Grid item xs={12}>
@@ -28,4 +28,4 @@ const Queue = () => {
     </Container>
 }
 
-export default Queue
+export default Index

@@ -146,7 +146,6 @@ export default function Home() {
 
     }
 
-
     return (
         <Container maxWidth="md">
             <Box mt={2}>
