@@ -1,31 +1,41 @@
 import React from "react"
-import {Card, CardActionArea, CardHeader, Container, Grid, Typography} from "@material-ui/core";
-import {List as ListIcon,AddCircle as AddCircleIcon  }from "@material-ui/icons"
+import {Box, Card, CardActionArea, CardHeader, CircularProgress, Container, Grid, Typography} from "@material-ui/core";
+import {AddCircle as AddCircleIcon  }from "@material-ui/icons"
 import Link from "next/link"
+import useSWR from "swr";
+import {useDeck} from "../../components/DeckProvider";
+import _ from "lodash"
 
-const Index = () => {
-    return <Container maxWidth="md">
-        <Grid container spacing={2}>
-            <Grid item xs={12}>
-                <Card>
-                    <Link passHref href="/queue">
-                        <CardActionArea>
-                            <CardHeader title={<Typography variant="h5">Queue</Typography>} avatar={<ListIcon/>}/>
-                        </CardActionArea>
-                    </Link>
-                </Card>
-            </Grid>
-            <Grid item xs={12}>
-                <Card>
-                    <Link passHref href="/add">
-                        <CardActionArea>
-                            <CardHeader title={<Typography variant="h5">Quick add</Typography>} avatar={<AddCircleIcon/>}/>
-                        </CardActionArea>
-                    </Link>
-                </Card>
-            </Grid>
-        </Grid>
-    </Container>
+const QueueNote = ({noteId, modelName, tags, fields, cards}) => {
+    const repField = _.find(fields, {"order": 0})
+
+    return (<Card>
+        <Link passHref href={`/queue/${noteId}`}>
+            <CardActionArea>
+                <CardHeader title={<Typography variant="h5">{repField.value}</Typography>}/>
+            </CardActionArea>
+        </Link>
+    </Card>
+    )
 }
 
-export default Index
+const Queue = ({}) => {
+    const {deckName} = useDeck()
+    const {data} = useSWR(`/api/notes/queue/${encodeURI(deckName)}`)
+    const notes = data?.response ?? false
+
+    console.log(notes)
+    return <Box my={5}><Container maxWidth="md">
+        <Grid container spacing={5}>
+            {!notes ? <CircularProgress/> :
+            notes.map(({noteId, modelName, tags, fields, cards}) => (
+                <Grid item xs={12}>
+                <QueueNote noteId={noteId} modelName={modelName} tags={tags} fields={fields} cards={cards}/>
+                </Grid>
+            ))}
+        </Grid>
+    </Container>
+    </Box>
+}
+
+export default Queue

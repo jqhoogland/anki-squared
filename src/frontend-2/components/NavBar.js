@@ -51,7 +51,7 @@ const useStyles = makeStyles({
         justifyContent: 'flex-end',
     },
     topPadding: {
-        marginBottom: theme.spacing(5)
+        marginBottom: theme.spacing(10)
     }
 })
 
