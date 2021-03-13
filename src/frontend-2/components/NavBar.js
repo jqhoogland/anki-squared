@@ -130,15 +130,15 @@ const NavBar = ({window}) => {
                 <Container>
                     <Box my={2}>
                         <Grid container spacing={1}>
-                            <Grid item xs={5}>
+                            <Grid item sm={5} xs={3}>
                                 <Chooser label="Deck" item={deckName} setItem={setDeck} options={decks}
                                          defaultItem={deckName}/>
                             </Grid>
-                            <Grid item xs={5}>
+                            <Grid item sm={6} xs={4}>
                                 <Chooser label="Model" item={modelName} setItem={setModel} options={models}
                                          defaultItem={modelName}/>
                             </Grid>
-                            <Grid item xs={2} className={classes.languagePicker}>
+                            <Grid item sm={1} xs={2} className={classes.languagePicker}>
                                 <LanguagePicker label="Language"/>
                             </Grid>
                         </Grid>

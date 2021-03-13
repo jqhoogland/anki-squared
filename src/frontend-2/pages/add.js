@@ -14,7 +14,7 @@ import {useDeck} from "../components/DeckProvider";
 
 
 const createCardOptions = {
-    "allowDuplicate": false,
+    "allowDuplicate": true,
 }
 
 
@@ -104,7 +104,7 @@ export default function Home() {
         _updateAudio([])
     }
 
-    const handleCreate = () => {
+    const handleCreate = (queue=false) => {
         saveFieldTypes({modelName, fields, audio, video, picture})
         axios.post(`/api/notes/create`, {
             deckName,
@@ -114,7 +114,8 @@ export default function Home() {
             tags,
             audio,
             video,
-            picture
+            picture,
+            queue
         })
         clearNote()
     }
@@ -172,7 +173,14 @@ export default function Home() {
                         )}
                         <Grid item xs={12}>
                             <Box my={5}>
-                                <Button color="primary" variant="contained" onClick={handleCreate}>Create</Button>
+                                <Grid container spacing={1}>
+                                    <Grid item>
+                                <Button color="primary" variant="contained" onClick={() => handleCreate(true)}>Add to Queue</Button>
+                                    </Grid>
+                                    <Grid item>
+                                <Button color="primary" variant="contained" onClick={() => handleCreate(false)}>Create</Button>
+                                    </Grid>
+                                </Grid>
                             </Box>
                         </Grid>
                         <Grid item xs={12}>
