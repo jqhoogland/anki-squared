@@ -53,11 +53,13 @@ const Queue = ({}) => {
             ...note,
             queue: true
         })
+
         addNote({
             ...note,
             fields: Object.values(note.fields).map((value="", order) => ({value, order})),
             tags: ["queue"]
         })
+
         setValue("")
     }
 
