@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from "react"
 import {
-    Box,
+    Box, Button,
     Card,
     CardActionArea, CardActions,
     CardHeader,
@@ -33,13 +33,13 @@ const QueueNote = ({index, noteId, modelName, tags, fields, cards}) => {
 }
 
 const Queue = ({}) => {
-    const { queue: notes } = useQueue()
+    const { queue: notes, addNote } = useQueue()
     const {deckName, modelName, fieldNames} = useDeck()
     const [value, setValue] = useState("")
 
 
     const submit = () => {
-        axios.post(`/api/notes/create`, {
+        const note = {
             deckName,
             modelName,
             fields: _.zipObject(fieldNames, fieldNames.map((_, i) => i === 0 ? value : "")),
@@ -47,12 +47,23 @@ const Queue = ({}) => {
             audio: [],
             video: [],
             picture: [],
-            queue: []
+        }
+
+        axios.post(`/api/notes/create`, {
+            ...note,
+            queue: true
+        })
+        addNote({
+            ...note,
+            fields: Object.values(note.fields).map((value="", order) => ({value, order})),
+            tags: ["queue"]
         })
         setValue("")
     }
 
     return <Box my={5}><Container maxWidth="md">
+        <Box my={10}>
+
         <Grid container spacing={5}>
             {!notes ? <CircularProgress/> :
             notes.map(({noteId, modelName, tags, fields, cards}, index) => (
@@ -61,6 +72,7 @@ const Queue = ({}) => {
                 </Grid>
             ))}
         </Grid>
+        </Box>
         <Divider />
         <Box my={10}>
         <Card variant="outlined">
@@ -71,6 +83,11 @@ const Queue = ({}) => {
                 </IconButton>
             </CardActions>
         </Card>
+        </Box>
+        <Box my={10}>
+        <Link href="/queue/bulk-add" passHref>
+        <Button component="a" variant="contained" color="primary">Bulk Add</Button>
+        </Link>
         </Box>
     </Container>
     </Box>
