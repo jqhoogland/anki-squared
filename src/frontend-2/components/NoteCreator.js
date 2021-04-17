@@ -1,6 +1,5 @@
 import React, {useEffect, useState} from "react"
 import {useDeck} from "../providers/DeckProvider";
-import useSWR from "swr";
 import _ from "lodash";
 import Cookies from "js-cookie";
 import {getFileNameFromUrl} from "../utils";
@@ -41,7 +40,7 @@ const useMedia = (defaultValue = []) => {
     return [media, updateMedia]
 }
 
-const NoteCreator = ({onCreate, defaultFields={}, defaultTags=[]}) => {
+const NoteCreator = ({onCreate, defaultFields = {}, defaultTags = []}) => {
     console.log("DEFAULTS", defaultFields, defaultTags)
 
     const {deckName, modelName} = useDeck()
@@ -60,10 +59,10 @@ const NoteCreator = ({onCreate, defaultFields={}, defaultTags=[]}) => {
     const [focus, setFocus] = useState(fields[starredField])
     const [isRefreshing, setRefreshing] = useState(false)
 
-    console.log("Given", fields, tags)
 
+    /* Update the fields whenever the node type is changede in navbar */
     useEffect(() => {
-        if (defaultFields && defaultFields.length > 0) {
+        if (!!defaultFields) {
             setFields(defaultFields)
             setStarredField(Object.keys(defaultFields)[0])
             try {
@@ -74,6 +73,7 @@ const NoteCreator = ({onCreate, defaultFields={}, defaultTags=[]}) => {
         }
     }, [defaultFields])
 
+    /* "Refreshing" times out after 50 ms */
     useEffect(() => {
         if (isRefreshing) {
             setTimeout(() => {
@@ -89,7 +89,7 @@ const NoteCreator = ({onCreate, defaultFields={}, defaultTags=[]}) => {
         _updateAudio([])
     }
 
-    const handleCreate = (queue=false) => {
+    const handleCreate = (queue = false) => {
         saveFieldTypes({modelName, fields, audio, video, picture})
         onCreate({
             deckName,
@@ -159,10 +159,12 @@ const NoteCreator = ({onCreate, defaultFields={}, defaultTags=[]}) => {
                             <Box my={5}>
                                 <Grid container spacing={1}>
                                     <Grid item>
-                                        <Button color="primary" variant="contained" onClick={() => handleCreate(true)}>Add to Queue</Button>
+                                        <Button color="primary" variant="contained" onClick={() => handleCreate(true)}>Add
+                                            to Queue</Button>
                                     </Grid>
                                     <Grid item>
-                                        <Button color="primary" variant="contained" onClick={() => handleCreate(false)}>Create</Button>
+                                        <Button color="primary" variant="contained"
+                                                onClick={() => handleCreate(false)}>Create</Button>
                                     </Grid>
                                 </Grid>
                             </Box>
