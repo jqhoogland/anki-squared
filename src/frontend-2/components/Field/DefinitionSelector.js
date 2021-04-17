@@ -37,7 +37,6 @@ const useStyles = makeStyles(theme => ({
 }));
 
 const DefinitionCard = ({definition}) => {
-    console.log(definition)
     const classes = useStyles()
     return <Card variant="outlined">
         <CardContent>
