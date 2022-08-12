@@ -1,3 +1,5 @@
+/// Deciphered with the help of https://github.com/ankidroid/Anki-Android/wiki/Database-Structure
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,147 +9,240 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model cards {
-  id     Int    @id @default(autoincrement())
-  nid    Int
-  did    Int
-  ord    Int
-  mod    Int
-  usn    Int
-  type   Int
-  queue  Int
-  due    Int
-  ivl    Int
-  factor Int
-  reps   Int
-  lapses Int
-  left   Int
-  odue   Int
-  odid   Int
-  flags  Int
-  data   String
+model Card {
+  id BigInt @id @default(autoincrement())
+
+  nid  BigInt
+  note Note   @relation(fields: [nid], references: [id])
+
+  did  BigInt
+  deck Deck   @relation(fields: [did], references: [id])
+
+  /// Identifies which cardd template or cloze deletion this corresponds to 
+  ord Int
+
+  /// In epoch seconds
+  updatedAt BigInt @map("mod")
+
+  /// Update sequence number: used to figure out diffs when synching. 
+  /// - A -1 means it needs to be pushed to server. 
+  /// - usn < server usn means it needs to be pulled
+  usn Int
+
+  /// 0=new, 1=learning, 2=review, 3=relearning, 4=buried?
+  type Int
+
+  /// -3=user buried, -2=sched buried, -2=buried, -1=suspended
+  /// 0=new, 1=learning, 2=review, 3=in learning, 4=preview
+  queue Int
+
+  /// Depending on card type:
+  /// - new: note id or random id
+  /// - due: integer day relative to collection's creation time
+  /// - learning: integer timestamp in seconds
+  due BigInt
+
+  /// Interval used in SRS. Negative = seconds, Positive = days
+  ivl BigInt
+
+  /// Ease factor in permille
+  factor BigInt
+
+  /// Number of reviews
+  reps BigInt
+
+  /// Number of times "answered correctly" -> "answered incorrectly"
+  lapses BigInt
+
+  /// a * 1000 + b, where:
+  /// - a is number of reps left today
+  /// - b is number of reps until graduation
+  left BigInt
+
+  /// Original due (for use in filtered deck)
+  odue BigInt
+
+  // Original did (for use in filtered deck)
+  odid BigInt
+
+  /// 0=no flag, 1=red, 2=orange, 3=green, 4=blue
+  flags Int
+
+  /// Not used
+  data       String
+  reviewLogs ReviewLog[]
 
   @@index([did, queue, due], map: "ix_cards_sched")
   @@index([nid], map: "ix_cards_nid")
   @@index([usn], map: "ix_cards_usn")
+  @@map("cards")
 }
 
-model col {
-  id     Int    @id @default(autoincrement())
-  crt    Int
-  mod    Int
-  scm    Int
-  ver    Int
-  dty    Int
-  usn    Int
-  ls     Int
-  conf   String
+model Collection {
+  id              BigInt @id @default(autoincrement())
+  createdAt       BigInt @map("crt") /// in epoch seconds
+  updatedAt       BigInt @map("mod") /// ditto
+  schemaUpdatedAt BigInt @map("scm") /// ditto. If out of sync, requires a full sync
+  version         BigInt @map("ver")
+  dirty           Int    @map("dty") /// Not used
+  usn             BigInt
+  lastSyncedAt    BigInt @map("ls") /// Epoch seconds
+  conf            String /// Json object of configuration options
+
+  /// Json object of models/note types
+  /// {[modelCreationTime: Epoch milliseconds]: [Model Json Object]}
   models String
-  decks  String
-  dconf  String
-  tags   String
+
+  /// Json object representing decks
+  /// {[deckCreationTime: Epoch milliseconds]: [Deck Json Object]}
+  decks String
+
+  /// Json object representing deck configuration
+  /// {[deckCreationTime: Epoch milliseconds]: [Deck Config Json Object]}
+  dconf String
+
+  /// Cache of tags used in the collection
+  tags String
+
+  @@map("col")
 }
 
-model config {
+model Config {
   key        String @id
-  usn        Int
-  mtime_secs Int
+  usn        BigInt
+  mtime_secs BigInt
   val        Bytes
+
+  @@map("config")
 }
 
-model deck_config {
-  id         Int    @id @default(autoincrement())
+model DeckConfig {
+  id         BigInt @id @default(autoincrement())
   name       String
-  mtime_secs Int
-  usn        Int
+  mtime_secs BigInt
+  usn        BigInt
   config     Bytes
+
+  @@map("deck_config")
 }
 
-model decks {
-  id         Int    @id @default(autoincrement())
+model Deck {
+  id         BigInt @id @default(autoincrement())
   name       String @unique(map: "idx_decks_name")
-  mtime_secs Int
-  usn        Int
+  mtime_secs BigInt
+  usn        BigInt
   common     Bytes
   kind       Bytes
+
+  cards Card[]
+
+  @@map("decks")
 }
 
-model fields {
-  ntid   Int
-  ord    Int
+model Field {
+  ntid   BigInt
+  ord    BigInt
   name   String
   config Bytes
 
+  noteType NoteType @relation(fields: [ntid], references: [id])
+
   @@id([ntid, ord])
   @@unique([name, ntid], map: "idx_fields_name_ntid")
+  @@map("fields")
 }
 
+/// For deleted cards, notes, decks that need to be synced
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
 model graves {
-  usn  Int
-  oid  Int
+  usn Int /// Should be -1
+  oid BigInt
+
+  /// 0=card, 1=note, 2=deck
   type Int
 
   @@ignore
 }
 
-model notes {
-  id    Int    @id @default(autoincrement())
-  guid  String
-  mid   Int
-  mod   Int
-  usn   Int
-  tags  String
-  flds  String
-  sfld  Int
-  csum  Int
-  flags Int
-  data  String
+model Note {
+  id        BigInt @id /// Epoch milliseconds
+  guid      String /// Globally unique id (used for synching)
+  mid       BigInt // ?
+  updatedAt BigInt @map("mod")
+  usn       Int
+  tags      String /// Space-separated (with space at beginning and end)
+  fields    String @map("flds") /// Fields in note, separated by 0x1f (31) character.
+  sortField String @map("sfld")
+  csum      BigInt /// Used for duplicate check (first 8 digits of sha1 hash of first field)
+  flags     Int /// Unused
+  data      String /// Unused
+
+  cards Card[]
 
   @@index([mid], map: "idx_notes_mid")
   @@index([csum], map: "ix_notes_csum")
   @@index([usn], map: "ix_notes_usn")
+  @@map("notes")
 }
 
-model notetypes {
-  id         Int    @id @default(autoincrement())
+model NoteType {
+  id         BigInt @id @default(autoincrement())
   name       String @unique(map: "idx_notetypes_name")
-  mtime_secs Int
-  usn        Int
+  mtime_secs BigInt
+  usn        BigInt
   config     Bytes
 
+  Field    Field[]
+  Template Template[]
+
   @@index([usn], map: "idx_notetypes_usn")
+  @@map("notetypes")
 }
 
-model revlog {
-  id      Int @id @default(autoincrement())
-  cid     Int
-  usn     Int
+/// Row for every review ever done!
+model ReviewLog {
+  id BigInt @id @default(autoincrement())
+
+  cid  BigInt
+  card Card   @relation(fields: [cid], references: [id])
+
+  usn BigInt
+
+  /// review: 1=wrong, 2=hard, 3=ok, 4=easy;
+  /// learn: 1=wrong; 2=ok; 3=easy
   ease    Int
-  ivl     Int
-  lastIvl Int
-  factor  Int
-  time    Int
-  type    Int
+  ivl     BigInt
+  lastIvl BigInt
+  factor  BigInt
+  time    BigInt /// Milliseconds per review
+
+  /// 0=learn, 1=review, 2=relearn, 3=cram
+  type Int
 
   @@index([cid], map: "ix_revlog_cid")
   @@index([usn], map: "ix_revlog_usn")
+  @@map("revlog")
 }
 
-model tags {
+model Tag {
   tag String @id
-  usn Int
+  usn BigInt
+
+  @@map("tags")
 }
 
-model templates {
-  ntid       Int
-  ord        Int
+model Template {
+  ntid       BigInt
+  ord        BigInt
   name       String
-  mtime_secs Int
-  usn        Int
+  mtime_secs BigInt
+  usn        BigInt
   config     Bytes
+
+  noteType NoteType @relation(fields: [ntid], references: [id])
 
   @@id([ntid, ord])
   @@unique([name, ntid], map: "idx_templates_name_ntid")
   @@index([usn], map: "idx_templates_usn")
+  @@map("templates")
 }
