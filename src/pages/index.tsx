@@ -1,7 +1,11 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { trpc } from "../utils/trpc";
+import { Field, Note } from '@prisma/client';
+import { NoteType } from '@prisma/client';
+import { getParsedType } from "zod";
+import { ParsedNote, ParsedNoteType } from "../server/router/notes";
 
 type TechnologyCardProps = {
   name: string;
@@ -10,11 +14,17 @@ type TechnologyCardProps = {
 };
 
 const Home: NextPage = () => {
-  const { data } = trpc.proxy.notes.paginate.useInfiniteQuery({ limit: 50 }, {
+  const { data } = trpc.proxy.notes.paginate.useInfiniteQuery({}, {
     getNextPageParam: (lastPage) => lastPage.nextCursor
   })
 
+  const { data: noteTypes } = trpc.proxy.notes.types.useQuery();
   const notes = useMemo(() => (data?.pages ?? []).flatMap(page => page.items), [data])
+
+  const getNoteType = useCallback((ntid: bigint) => {
+    return noteTypes?.find(nt => nt.id === ntid)
+  }, [noteTypes])
+
 
   return (
     <>
@@ -30,11 +40,7 @@ const Home: NextPage = () => {
         </h1>
         <div className="flex flex-col gap-2">
           {notes.map(note => (
-            <div className="" key={note.id.toString()}>
-              <h2 className="">
-                {note.flds}
-              </h2>
-            </div>
+            <NoteRow note={note} type={getNoteType(note.ntid)} key={note.id.toString()} />
           ))}
         </div>
       </main>
@@ -42,25 +48,22 @@ const Home: NextPage = () => {
   );
 };
 
-const TechnologyCard = ({
-  name,
-  description,
-  documentation,
-}: TechnologyCardProps) => {
+const NoteRow = ({ note, type }: { note: ParsedNote, type?: ParsedNoteType }) => {
+  if (!type) {
+    console.error("No type found for note", note)
+    return <></>
+  }
+
+  const modelFields = type.fields.sort((a, b) => a.ord - b.ord)
+
+
   return (
-    <section className="flex flex-col justify-center p-6 duration-500 border-2 border-gray-500 rounded shadow-xl motion-safe:hover:scale-105">
-      <h2 className="text-lg text-gray-700">{name}</h2>
-      <p className="text-sm text-gray-600">{description}</p>
-      <a
-        className="mt-3 text-sm underline text-violet-500 decoration-dotted underline-offset-2"
-        href={documentation}
-        target="_blank"
-        rel="noreferrer"
-      >
-        Documentation
-      </a>
-    </section>
-  );
-};
+    <div className="" key={note.id.toString()}>
+      {note.fields.map((field, i) => <p key={i}><b>{modelFields[i]?.name}</b>: {field}</p>)}
+    </div>
+  )
+}
+
+
 
 export default Home;
