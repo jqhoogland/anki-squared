@@ -1,15 +1,153 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "sqlite"
-    url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
-model Example {
-    id String @id @default(cuid())
+model cards {
+  id     Int    @id @default(autoincrement())
+  nid    Int
+  did    Int
+  ord    Int
+  mod    Int
+  usn    Int
+  type   Int
+  queue  Int
+  due    Int
+  ivl    Int
+  factor Int
+  reps   Int
+  lapses Int
+  left   Int
+  odue   Int
+  odid   Int
+  flags  Int
+  data   String
+
+  @@index([did, queue, due], map: "ix_cards_sched")
+  @@index([nid], map: "ix_cards_nid")
+  @@index([usn], map: "ix_cards_usn")
+}
+
+model col {
+  id     Int    @id @default(autoincrement())
+  crt    Int
+  mod    Int
+  scm    Int
+  ver    Int
+  dty    Int
+  usn    Int
+  ls     Int
+  conf   String
+  models String
+  decks  String
+  dconf  String
+  tags   String
+}
+
+model config {
+  key        String @id
+  usn        Int
+  mtime_secs Int
+  val        Bytes
+}
+
+model deck_config {
+  id         Int    @id @default(autoincrement())
+  name       String
+  mtime_secs Int
+  usn        Int
+  config     Bytes
+}
+
+model decks {
+  id         Int    @id @default(autoincrement())
+  name       String @unique(map: "idx_decks_name")
+  mtime_secs Int
+  usn        Int
+  common     Bytes
+  kind       Bytes
+}
+
+model fields {
+  ntid   Int
+  ord    Int
+  name   String
+  config Bytes
+
+  @@id([ntid, ord])
+  @@unique([name, ntid], map: "idx_fields_name_ntid")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model graves {
+  usn  Int
+  oid  Int
+  type Int
+
+  @@ignore
+}
+
+model notes {
+  id    Int    @id @default(autoincrement())
+  guid  String
+  mid   Int
+  mod   Int
+  usn   Int
+  tags  String
+  flds  String
+  sfld  Int
+  csum  Int
+  flags Int
+  data  String
+
+  @@index([mid], map: "idx_notes_mid")
+  @@index([csum], map: "ix_notes_csum")
+  @@index([usn], map: "ix_notes_usn")
+}
+
+model notetypes {
+  id         Int    @id @default(autoincrement())
+  name       String @unique(map: "idx_notetypes_name")
+  mtime_secs Int
+  usn        Int
+  config     Bytes
+
+  @@index([usn], map: "idx_notetypes_usn")
+}
+
+model revlog {
+  id      Int @id @default(autoincrement())
+  cid     Int
+  usn     Int
+  ease    Int
+  ivl     Int
+  lastIvl Int
+  factor  Int
+  time    Int
+  type    Int
+
+  @@index([cid], map: "ix_revlog_cid")
+  @@index([usn], map: "ix_revlog_usn")
+}
+
+model tags {
+  tag String @id
+  usn Int
+}
+
+model templates {
+  ntid       Int
+  ord        Int
+  name       String
+  mtime_secs Int
+  usn        Int
+  config     Bytes
+
+  @@id([ntid, ord])
+  @@unique([name, ntid], map: "idx_templates_name_ntid")
+  @@index([usn], map: "idx_templates_usn")
 }

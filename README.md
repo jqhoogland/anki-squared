@@ -17,3 +17,8 @@ Take an example from language learning:
 ---
 
 This is an app bootstrapped according to the [init.tips](https://init.tips) stack, also known as the T3-Stack.
+
+
+# How to use
+
+You need a `.env` with a `DATABASE_URL` pointing to your anki database, for example, `file:~/Library/Application Support/Anki2/User 1/collection.anki2` on a Mac. (Note: if your path includes spaces, they should NOT be escaped.)
