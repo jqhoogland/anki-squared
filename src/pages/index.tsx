@@ -13,6 +13,7 @@ import clsx from "clsx";
 import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { useRouter } from "next/router";
 import { Html } from "next/document";
+import { updatePaginatedItem } from '../utils/pagination';
 
 type TechnologyCardProps = {
   name: string;
@@ -21,10 +22,8 @@ type TechnologyCardProps = {
 };
 
 const Home: NextPage = () => {
-  const router = useRouter();
-  const { data, fetchNextPage, isLoading } = trpc.proxy.notes.paginate.useInfiniteQuery({
-    did: router.query.did
-  }, {
+  const queryParams = useFilterParams();
+  const { data, fetchNextPage, isLoading } = trpc.proxy.notes.paginate.useInfiniteQuery(queryParams, {
     getNextPageParam: (lastPage) => lastPage.nextCursor
   })
 
@@ -132,7 +131,51 @@ const DeckLI: React.FC<{ deck: DeckWithChildren }> = ({ deck }) => {
   )
 }
 
+const useFilterParams = () => {
+  const router = useRouter();
+  const queryParams: Record<string, any> = { ...router.query };
+
+  if (router.query.queue) {
+    if (typeof router.query.queue === "string") {
+      queryParams.queue = router.query.queue === "true" || router.query.queue === "1";
+    } else {
+      delete queryParams.queue;
+    }
+  }
+
+  console.log({ queryParams }, router.query)
+
+  return queryParams
+}
+
+const useToggleStatus = (id: bigint, status: "queue" | "ready") => {
+  const queryParams = useFilterParams();
+  const utils = trpc.useContext()
+  const { mutate: _toggleStatus } = trpc.proxy.notes.status.toggle.useMutation({
+    onMutate: () => {
+      utils.setInfiniteQueryData(
+        // @ts-ignore (This is working)
+        ['notes.paginate', queryParams],
+        (prev) =>
+          // @ts-ignore (This is working)
+          updatePaginatedItem(prev!, id, (note: ParsedNote) => ({
+            ...note,
+            tags: status === "queue" ? note.tags.splice(1) : ["1", ...note.tags],
+            status: status === "queue" ? "ready" : "queue"
+          }))
+      )
+    }
+  })
+
+  const toggleStatus = useCallback(async () => _toggleStatus({ id }), [_toggleStatus, id]);
+  return toggleStatus
+}
+
+
+
 const NoteRow = ({ note, type, index }: { note: ParsedNote, type?: ParsedNoteType, index: number }) => {
+  const toggleStatus = useToggleStatus(note.id, note.status)
+
   const [focus, setFocus] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState<number | null>(null);
   const modelFields = useMemo(() => (type?.fields ?? []).sort((a, b) => a.ord - b.ord), [type?.fields])
@@ -192,9 +235,9 @@ const NoteRow = ({ note, type, index }: { note: ParsedNote, type?: ParsedNoteTyp
   }, [])
 
   const statusIcon = useMemo(() => note.status === "queue"
-    ? <HiClock className="bg-warning text-white btn btn-circle btn-xs" />
-    : <HiCheck className="bg-green-700 text-white btn btn-circle btn-xs" />,
-    [note.status]
+    ? <HiClock className="bg-warning text-white btn btn-circle btn-xs" onClick={toggleStatus} />
+    : <HiCheck className="bg-green-700 text-white btn btn-circle btn-xs" onClick={toggleStatus} />,
+    [note.status, toggleStatus]
   );
 
   if (!type) {
@@ -205,7 +248,7 @@ const NoteRow = ({ note, type, index }: { note: ParsedNote, type?: ParsedNoteTyp
 
   return (
     <div
-      className="scrollbar-x-hidden py-2 flex flex-row divide-x-2 w-full overflow-scroll"
+      className="py-2 flex flex-row divide-x-2 w-full"
       key={note.id.toString()}
       id={`note-${index}`}
       onKeyDown={handleKeyDown}

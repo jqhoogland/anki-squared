@@ -1,4 +1,5 @@
 import { Field, Note, NoteType, Prisma, Template } from "@prisma/client";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { t } from "./context";
 
@@ -7,6 +8,7 @@ const notesRouter = t.router({
         limit: z.number().min(1).max(100).default(25),
         cursor: z.number().default(0),
         did: z.string().or(z.array(z.string())).nullish(),
+        queue: z.boolean().optional()
     })).query(async ({ input, ctx }) => {
         let cardFindArgs: true | Prisma.CardListRelationFilter = { some: {} };
 
@@ -27,11 +29,13 @@ const notesRouter = t.router({
         const items = (await ctx.prisma.note.findMany({
             where: {
                 cards: cardFindArgs,
+                ...(input.queue ? { tags: { startsWith: " 1" } } : {})
             },
-            orderBy: {
-                tags: 'asc',
-                id: 'desc'
-            },
+            orderBy: [
+                {
+                    "id": "desc"
+                }
+            ],
             take: input.limit,
             skip: input.cursor,
         })).map(parseNote)
@@ -51,7 +55,26 @@ const notesRouter = t.router({
             fields: true,
             templates: true,
         },
-    }).then(noteTypes => noteTypes.map(parseNoteType)))
+    }).then(noteTypes => noteTypes.map(parseNoteType))),
+
+    status: t.router({
+        toggle: t.procedure.input(z.object({ id: z.bigint() })).mutation(async ({ input, ctx }) => {
+            const note = await ctx.prisma?.note.findUnique({ where: input });
+
+            if (!note) {
+                throw new TRPCError({ code: 'NOT_FOUND', message: 'Note not found' });
+            }
+
+            // We track status by setting the first tag to a number
+            const newTags = note.tags.startsWith(" 1 ") ? note.tags.slice(3) : " 1 " + note.tags;
+
+            return ctx.prisma.note.update({
+                where: { id: note.id },
+                data: { tags: newTags, usn: -1 },
+            })
+        })
+
+    })
 })
 
 export default notesRouter
@@ -60,7 +83,7 @@ export const parseNote = <T extends Note>(note: T) => ({
     ...note,
     fields: (note.fields ?? "").split(String.fromCharCode(31)),
     tags: (note.tags ?? "").split(" ").filter(Boolean),
-    status: note.tags.startsWith(" 1 ") ? "queue" : "ready"
+    status: note.tags.startsWith(" 1 ") ? "queue" as const : "ready" as const
 })
 
 export type ParsedNote = ReturnType<typeof parseNote<Note>>
