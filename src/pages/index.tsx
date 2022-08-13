@@ -55,7 +55,7 @@ const Home: NextPage = () => {
           <header className="navbar bg-base-200 px-4 w-full">
             <Filters />
           </header>
-          <div className="flex flex-col gap-2 divide-y w-[max-content]">
+          <div className="flex flex-col divide-y w-[max-content]">
             {notes.map((note, i) => (
               <NoteRow note={note} type={getNoteType(note.ntid)} key={note.id.toString()} index={i} />
             ))}
@@ -272,8 +272,8 @@ const NoteRow = ({ note, type, index }: { note: ParsedNote, type?: ParsedNoteTyp
   }, [])
 
   const statusIcon = useMemo(() => note.status === "queue"
-    ? <HiClock className="bg-warning text-white btn btn-circle btn-xs" onClick={toggleStatus} />
-    : <HiCheck className="bg-green-700 text-white btn btn-circle btn-xs" onClick={toggleStatus} />,
+    ? <HiClock tabIndex={0} className="bg-warning text-white btn btn-circle btn-xs" onClick={toggleStatus} />
+    : <HiCheck tabIndex={0} className="bg-green-700 text-white btn btn-circle btn-xs" onClick={toggleStatus} />,
     [note.status, toggleStatus]
   );
 
@@ -285,7 +285,7 @@ const NoteRow = ({ note, type, index }: { note: ParsedNote, type?: ParsedNoteTyp
 
   return (
     <div
-      className="py-2 flex flex-row divide-x-2 w-full"
+      className="flex flex-row divide-x-2 w-full focus:bg-base-200 focus:border-y-2 outline-none"
       key={note.id.toString()}
       id={`note-${index}`}
       onKeyDown={handleKeyDown}
@@ -296,7 +296,7 @@ const NoteRow = ({ note, type, index }: { note: ParsedNote, type?: ParsedNoteTyp
       </div>
       {note.fields.map((field, i) => (
         <div
-          className="flex flex-1 flex-col px-2 min-w-[150px] overflow-hidden"
+          className="flex flex-1 flex-col px-2 min-w-[150px] overflow-hidden focus:bg-base-200"
           key={i}
           tabIndex={0}
           onFocus={() => setFocus(i)}
@@ -304,10 +304,10 @@ const NoteRow = ({ note, type, index }: { note: ParsedNote, type?: ParsedNoteTyp
           id={`note-${index}-field-${i}`}
           onClick={() => setIsEditing(i)}
         >
-          <label key={i} className="w-full text-xs opacity-50 ">{modelFields[i]?.name}</label>
+          <label key={i} className="w-full text-xs opacity-50 pt-2">{modelFields[i]?.name}</label>
           {
             (isEditing === i) ?
-              <textarea defaultValue={field} autoFocus className="h-full" onFocus={moveCaretToEnd} />
+              <textarea defaultValue={field} autoFocus className="h-full focus:bg-base-200" onFocus={moveCaretToEnd} />
               : <div dangerouslySetInnerHTML={{ __html: field }} />
           }
         </div>
