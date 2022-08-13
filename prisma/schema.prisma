@@ -175,7 +175,7 @@ model Note {
   usn       Int
   tags      String /// Space-separated (with space at beginning and end)
   fields    String @map("flds") /// Fields in note, separated by 0x1f (31) character.
-  sortField String @map("sfld") /// Can't use this because it's text stored in an int field
+  // sortField String @map("sfld") /// Can't use this because it's text stored in an int field but sometimes contains text
   csum      BigInt /// Used for duplicate check (first 8 digits of sha1 hash of first field)
   flags     Int /// Unused
   data      String /// Unused

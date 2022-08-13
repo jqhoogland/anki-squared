@@ -7,7 +7,7 @@ import { NoteType } from '@prisma/client';
 import { getParsedType } from "zod";
 import { ParsedNote, ParsedNoteType } from "../server/router/notes";
 import { DeckWithChildren } from "../server/router/decks";
-import { HiChevronDown } from "react-icons/hi";
+import { HiCheck, HiChevronDown, HiClock } from "react-icons/hi";
 import { ImSpinner } from "react-icons/im";
 import clsx from "clsx";
 import { useAutoAnimate } from '@formkit/auto-animate/react'
@@ -191,6 +191,12 @@ const NoteRow = ({ note, type, index }: { note: ParsedNote, type?: ParsedNoteTyp
     e.target.value = temp_value
   }, [])
 
+  const statusIcon = useMemo(() => note.status === "queue"
+    ? <HiClock className="bg-warning text-white btn btn-circle btn-xs" />
+    : <HiCheck className="bg-green-700 text-white btn btn-circle btn-xs" />,
+    [note.status]
+  );
+
   if (!type) {
     console.error("No type found for note", note)
     return <></>
@@ -205,8 +211,8 @@ const NoteRow = ({ note, type, index }: { note: ParsedNote, type?: ParsedNoteTyp
       onKeyDown={handleKeyDown}
       tabIndex={0}
     >
-      <div className="flex flex-0 items-align">
-
+      <div className="flex justify-center items-center px-4">
+        {statusIcon}
       </div>
       {note.fields.map((field, i) => (
         <div

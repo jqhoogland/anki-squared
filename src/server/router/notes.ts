@@ -29,6 +29,7 @@ const notesRouter = t.router({
                 cards: cardFindArgs,
             },
             orderBy: {
+                tags: 'asc',
                 id: 'desc'
             },
             take: input.limit,
@@ -58,9 +59,11 @@ export default notesRouter
 export const parseNote = <T extends Note>(note: T) => ({
     ...note,
     fields: (note.fields ?? "").split(String.fromCharCode(31)),
+    tags: (note.tags ?? "").split(" ").filter(Boolean),
+    status: note.tags.startsWith(" 1 ") ? "queue" : "ready"
 })
 
-export type ParsedNote = Omit<Note, 'fields'> & { fields: string[] }
+export type ParsedNote = ReturnType<typeof parseNote<Note>>
 
 
 const parseWithConfig = <T extends { config: Buffer }>(item: T) => ({
