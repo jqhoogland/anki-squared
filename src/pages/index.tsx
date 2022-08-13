@@ -16,6 +16,7 @@ import { updatePaginatedItem } from '../utils/pagination';
 import create from "zustand";
 import shallow from "zustand/shallow";
 import { useVirtual } from "@tanstack/react-virtual"
+import useEvent from "react-use/lib/useEvent";
 
 type TechnologyCardProps = {
   name: string;
@@ -55,8 +56,12 @@ const Home: NextPage = () => {
     estimateSize: useCallback(() => 100, []),
   })
 
-  console.log({ notes, getNoteType, handleScroll, parentRef, rowVirtualizer })
-  // onScroll={handleScroll}
+  const keyboardHandler = useEditor(store => store.keyboardHandler);
+  useEvent('keydown', keyboardHandler as unknown as EventListenerOrEventListenerObject, typeof document !== "undefined" ? document : null)
+
+  const editor = useEditor()
+  console.log(editor)
+
   return (
     <>
       <Head>
@@ -65,16 +70,17 @@ const Home: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <Layout>
-        <main className="w-[max-content] min-w-[calc(100vw-20rem)]">
-          <header className="navbar bg-b[ase-200 px-4 w-full h-16 min-w-[calc(100vw-20rem)]">
+        <main className="w-[max-content] min-w-[calc(100vw-13rem)]">
+          <header className="navbar bg-base-200 px-4 w-full h-16 min-w-[calc(100vw-13rem)]">
             <Filters />
           </header>
           <div
             ref={parentRef}
-            className="h-[calc(100vh-4rem)] overflow-y-auto w-[max-content] min-w-[calc(100vw-20rem)]"
+            onScroll={handleScroll}
+            className="h-[calc(100vh-4rem)] overflow-auto w-[max-content] min-w-[calc(100vw-13rem)]"
           >
             <div
-              className="flex flex-col divide-y w-[max-content] relative min-w-[calc(100vw-20rem)]"
+              className="flex flex-col divide-y w-[max-content] relative min-w-[calc(100vw-13rem)] overflow-x-auto items-stretch"
               style={{ height: `${rowVirtualizer.totalSize}px`, position: "relative" }}
             >
               {rowVirtualizer.virtualItems.map((virtualItem) => (
@@ -84,9 +90,11 @@ const Home: NextPage = () => {
                   index={virtualItem.index}
                   key={virtualItem.key}
                   style={{
+                    display: "flex",
                     position: "absolute",
                     top: 0,
                     left: 0,
+                    width: "100%",
                     height: `${virtualItem.size}px`,
                     transform: `translateY(${virtualItem.start}px)`,
                   }}
@@ -121,14 +129,14 @@ const Layout: React.FC<HTMLProps<HTMLDivElement>> = ({ children, ...props }) => 
   const { data: decks } = trpc.proxy.decks.hierarchy.useQuery();
 
   return (
-    <div className="grid grid-cols-6 h-screen overflow-hidden">
-      <aside className="col-span-1 bg-base-300">
+    <div className="flex h-screen overflow-hidden">
+      <aside className="bg-base-300 w-52">
         <header className="px-4 pt-4 pb-2 border-b">
           <h1 className="text-3xl leading-normal font-extrabold ">
             Anki<sup className="text-sky-500">2</sup>
           </h1>
         </header>
-        <nav className="p-4 ">
+        <nav className="p-4">
           <h2 className="opacity-50 font-bold pb-2">Decks</h2>
           <ul className="flex flex-col gap-2 overflow-x-hidden">
             {decks?.map(deck => (
@@ -230,7 +238,7 @@ const NoteRow = ({ note, type, index, ...props }: NoteRowProps) => {
 
   const modelFields = useMemo(() => (type?.fields ?? []).sort((a, b) => a.ord - b.ord), [type?.fields])
   const editor = useEditor(store => store);
-  const handleKeyDown = useMemo(() => editor.createKeyboardHandler(index), [editor, index])
+  const [min, max] = editor.selectionRange();
 
 
   const statusIcon = useMemo(() => note.status === "queue"
@@ -246,25 +254,29 @@ const NoteRow = ({ note, type, index, ...props }: NoteRowProps) => {
 
   return (
     <div
-      tabIndex={0}
       onMouseOver={() => editor.setRowHover(index)}
       {...props}
       className={
         clsx(
-          "flex flex-row divide-x-2 w-full focus:bg-base-200 focus:border-y-2 outline-none",
-          editor.rowHover === index && "bg-base-200",
+          "flex flex-row divide-x-2 w-full",
+          (!editor.rowSelection && editor.rowHover === index) && "bg-base-200",
+          (editor.rowSelection === index) && "bg-base-200 border-y-2 border-base-300",
+          (typeof editor.rowSelection !== "number" && min <= index && max >= index) && "bg-blue-100 dark:bg-blue-800 border-y-2 border-blue-200 dark:border-blue-900",
+          min === index && "outline-b-none",
+          max === index && "outline-t-none",
           props.className
         )
       }
-      onKeyDown={handleKeyDown}
     >
       <div className="flex justify-center items-center px-4">
         {statusIcon}
       </div>
-      {note.fields.map((field, i) => (
-        <MemoizedRowField key={i} row={index} col={i} field={field} label={modelFields[i]?.name} />
-      ))}
-    </div>
+      {
+        note.fields.map((field, i) => (
+          <MemoizedRowField key={i} row={index} col={i} field={field} label={modelFields[i]?.name} />
+        ))
+      }
+    </div >
   )
 }
 
@@ -276,7 +288,9 @@ const RowField = ({ label, field, row, col }: { label: string | undefined, field
 
   return (
     <div
-      className="flex flex-1 flex-col px-2 min-w-[150px] overflow-hidden focus:bg-base-200"
+      className={
+        clsx("flex flex-1 flex-col px-2 min-w-[150px] overflow-hidden focus:bg-base-200",)
+      }
       onClick={select}
     >
       <label className="w-full text-xs opacity-50 pt-2">{label}</label>
@@ -303,13 +317,14 @@ export default Home;
 
 type EditorStore = {
   rowHover: number | null,
-  rowSelection: null | number | [number, number],
+  rowSelection: null | number | { anchor: number, cursor: number },
   fieldSelection: null | number,
   isEditing: boolean,
   setRowHover: (row: number | null) => void,
-  setRowSelection: (row: number | [number, number] | null) => void,
+  setRowSelection: (row: number | { anchor: number, cursor: number } | null) => void,
   setFieldSelection: (field: number | null) => void,
-  createKeyboardHandler: (index: number) => (e: KeyboardEvent) => void,
+  keyboardHandler: KeyboardEventHandler,
+  selectionRange: () => [number, number]
 }
 
 
@@ -318,6 +333,17 @@ const useEditor = create<EditorStore>((set, get) => ({
   rowSelection: null,
   fieldSelection: null,
   isEditing: false,
+
+  selectionRange: () => {
+    const rowSelection = get().rowSelection
+
+    if (rowSelection === null) {
+      return [-1, -1]
+    } else if (typeof rowSelection === "number") {
+      return [rowSelection, rowSelection]
+    }
+    return [Math.min(rowSelection.anchor, rowSelection.cursor), Math.max(rowSelection.anchor, rowSelection.cursor)]
+  },
 
   setRowHover(row) {
     set({ rowHover: row })
@@ -329,23 +355,28 @@ const useEditor = create<EditorStore>((set, get) => ({
     set({ fieldSelection: field })
   },
 
-  createKeyboardHandler: (index) => (e) => {
+  keyboardHandler: (e) => {
+    console.log({ e })
     if (typeof document !== "undefined") {
       const { rowSelection, rowHover, fieldSelection, isEditing, setRowSelection, setFieldSelection } = get();
-
+      if (rowHover != null && rowSelection === null) {
+        set({ rowSelection: rowHover })
+        return;
+      }
       const moveRow = (dY: number) => {
+        console.log({ r: rowSelection, dY, shift: e.shiftKey })
         if (e.shiftKey) {
-          if (Array.isArray(rowSelection)) {
-            if (index === rowSelection[0]) {
-              setRowSelection([index + dY, rowSelection[1]])
-            } else {
-              setRowSelection([rowSelection[0], index + dY])
-            }
+          if (rowSelection == null) {
+            set({ rowSelection: { anchor: 0, cursor: 0 } })
+          } else if (typeof rowSelection === "number") {
+            set({ rowSelection: { anchor: rowSelection, cursor: rowSelection } })
           } else {
-            setRowSelection([index, index])
+            set({ rowSelection: { ...rowSelection, cursor: rowSelection.cursor + dY } })
           }
-        } else {
-          setRowSelection(index + dY)
+        } else if (rowSelection == null) {
+          set({ rowSelection: 0 })
+        } else if (typeof rowSelection === "number") {
+          set({ rowSelection: rowSelection + dY })
         }
       }
 
@@ -383,6 +414,6 @@ const useEditor = create<EditorStore>((set, get) => ({
       e.preventDefault()
       e.stopPropagation()
     }
-  }
+  },
 
 }))
