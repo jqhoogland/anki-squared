@@ -1,6 +1,6 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { HTMLProps, UIEvent, UIEventHandler, useCallback, useMemo, useRef, useState } from "react";
 import { trpc } from "../utils/trpc";
 import { Field, Note } from '@prisma/client';
 import { NoteType } from '@prisma/client';
@@ -8,9 +8,11 @@ import { getParsedType } from "zod";
 import { ParsedNote, ParsedNoteType } from "../server/router/notes";
 import { DeckWithChildren } from "../server/router/decks";
 import { HiChevronDown } from "react-icons/hi";
+import { ImSpinner } from "react-icons/im";
 import clsx from "clsx";
 import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { useRouter } from "next/router";
+import { Html } from "next/document";
 
 type TechnologyCardProps = {
   name: string;
@@ -20,7 +22,7 @@ type TechnologyCardProps = {
 
 const Home: NextPage = () => {
   const router = useRouter();
-  const { data } = trpc.proxy.notes.paginate.useInfiniteQuery({
+  const { data, fetchNextPage, isLoading } = trpc.proxy.notes.paginate.useInfiniteQuery({
     did: router.query.did
   }, {
     getNextPageParam: (lastPage) => lastPage.nextCursor
@@ -34,6 +36,14 @@ const Home: NextPage = () => {
   }, [noteTypes])
 
 
+  const handleScroll = useCallback<UIEventHandler<HTMLDivElement>>(
+    (e) => {
+      const bottom = e.target.scrollHeight - e.target.scrollTop <= e.target.clientHeight + 300;
+      if (bottom) {
+        fetchNextPage()
+      }
+    }, [fetchNextPage])
+
   return (
     <>
       <Head>
@@ -41,24 +51,26 @@ const Home: NextPage = () => {
         <meta name="description" content="An superpowered interface to your Anki notes" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <Layout>
-        <main className="min-h-[100vh]py-16">
+      <Layout onScroll={handleScroll}>
+        <main className="min-h-[100vh]py-16" >
           <div className="flex flex-col gap-2 divide-y">
             {notes.map(note => (
               <NoteRow note={note} type={getNoteType(note.ntid)} key={note.id.toString()} />
             ))}
           </div>
+          {isLoading &&
+            <div className="w-full flex items-center justify-center py-4"><ImSpinner className="animate-spin" /></div>}
         </main>
       </Layout>
     </>
   );
 };
 
-const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const Layout: React.FC<HTMLProps<HTMLDivElement>> = ({ children, ...props }) => {
   const { data: decks } = trpc.proxy.decks.hierarchy.useQuery();
 
   return (
-    <div className="grid grid-cols-6 min-h-[100vh]">
+    <div className="grid grid-cols-6 h-screen overflow-hidden">
       <aside className="col-span-1 bg-base-300">
         <header className="px-4 pt-4 pb-2 border-b">
           <h1 className="text-3xl leading-normal font-extrabold ">
@@ -74,7 +86,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </ul>
         </nav>
       </aside>
-      <div className="col-span-5">
+      <div className="col-span-5 overflow-y-scroll" {...props}>
         {children}
       </div>
     </div>

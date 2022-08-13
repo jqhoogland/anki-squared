@@ -24,7 +24,6 @@ const notesRouter = t.router({
             }
         }
 
-        console.log({ cardFindArgs })
         const items = (await ctx.prisma.note.findMany({
             where: {
                 cards: cardFindArgs,
