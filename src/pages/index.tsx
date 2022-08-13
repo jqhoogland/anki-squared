@@ -10,6 +10,7 @@ import { DeckWithChildren } from "../server/router/decks";
 import { HiChevronDown } from "react-icons/hi";
 import clsx from "clsx";
 import { useAutoAnimate } from '@formkit/auto-animate/react'
+import { useRouter } from "next/router";
 
 type TechnologyCardProps = {
   name: string;
@@ -63,7 +64,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </header>
         <nav className="p-4 ">
           <h2 className="opacity-50 font-bold pb-2">Decks</h2>
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col gap-2 overflow-x-hidden">
             {decks?.map(deck => (
               <DeckLI deck={deck} key={deck.id.toString()} />
             ))}
@@ -78,16 +79,25 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 }
 
 const DeckLI: React.FC<{ deck: DeckWithChildren }> = ({ deck }) => {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
-  const toggle = () => setIsOpen(o => !o);
+
+  const select = () => {
+    router.query.deck = deck.id.toString();
+    router.push(router)
+  }
+  const toggle = () => {
+    select()
+    setIsOpen(o => !o);
+  }
   const [ref] = useAutoAnimate<HTMLLIElement>();
 
 
   if ("children" in deck && deck.children && deck.children.length > 0) {
     return (
-      <li className="text-sm" ref={ref}>
-        <button onClick={toggle} className="cursor-pointer hover:bg-base-200 flex gap-1 items-center">
-          <HiChevronDown className="text-sm" />{deck.name}
+      <li className="text-sm w-full" ref={ref}>
+        <button onClick={toggle} className="cursor-pointer hover:bg-base-200 flex gap-1 items-center px-2 truncate rounded-lg">
+          <HiChevronDown className={clsx("text-sm transition duration-300", !isOpen && "rotate-180")} />{deck.name}
         </button>
         {isOpen &&
           <ul className={"pl-8"}>
@@ -99,8 +109,10 @@ const DeckLI: React.FC<{ deck: DeckWithChildren }> = ({ deck }) => {
   }
 
   return (
-    <li className="text-sm gap-1 flex">
-      {deck.name}
+    <li className="text-sm gap-1 flex ">
+      <button onClick={select} className="cursor-pointer hover:bg-base-200 flex gap-1 items-center px-2 truncate rounded-lg">
+        {deck.name}
+      </button>
     </li>
   )
 }
