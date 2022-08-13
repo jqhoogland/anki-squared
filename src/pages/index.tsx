@@ -1,6 +1,6 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import React, { FocusEventHandler, HTMLProps, KeyboardEventHandler, UIEvent, UIEventHandler, useCallback, useMemo, useRef, useState } from "react";
+import React, { FocusEventHandler, HTMLProps, KeyboardEventHandler, memo, UIEvent, UIEventHandler, useCallback, useMemo, useRef, useState } from "react";
 import { trpc } from "../utils/trpc";
 import { Field, Note } from '@prisma/client';
 import { NoteType } from '@prisma/client';
@@ -13,6 +13,9 @@ import clsx from "clsx";
 import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { useRouter } from "next/router";
 import { updatePaginatedItem } from '../utils/pagination';
+import create from "zustand";
+import shallow from "zustand/shallow";
+import { useVirtual } from "@tanstack/react-virtual"
 
 type TechnologyCardProps = {
   name: string;
@@ -23,7 +26,9 @@ type TechnologyCardProps = {
 const Home: NextPage = () => {
   const queryParams = useFilterParams();
   const { data, fetchNextPage, isLoading } = trpc.proxy.notes.paginate.useInfiniteQuery(queryParams, {
-    getNextPageParam: (lastPage) => lastPage.nextCursor
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    refetchOnWindowFocus: false,
+
   })
 
   const { data: noteTypes } = trpc.proxy.notes.types.useQuery();
@@ -43,6 +48,15 @@ const Home: NextPage = () => {
       }
     }, [fetchNextPage])
 
+  const parentRef = useRef<HTMLDivElement | null>(null)
+  const rowVirtualizer = useVirtual({
+    parentRef,
+    size: notes.length,
+    estimateSize: useCallback(() => 100, []),
+  })
+
+  console.log({ notes, getNoteType, handleScroll, parentRef, rowVirtualizer })
+  // onScroll={handleScroll}
   return (
     <>
       <Head>
@@ -50,18 +64,38 @@ const Home: NextPage = () => {
         <meta name="description" content="An superpowered interface to your Anki notes" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <Layout onScroll={handleScroll}>
-        <main className="w-[max-content]">
-          <header className="navbar bg-base-200 px-4 w-full">
+      <Layout>
+        <main className="w-[max-content] min-w-[calc(100vw-20rem)]">
+          <header className="navbar bg-b[ase-200 px-4 w-full h-16 min-w-[calc(100vw-20rem)]">
             <Filters />
           </header>
-          <div className="flex flex-col divide-y w-[max-content]">
-            {notes.map((note, i) => (
-              <NoteRow note={note} type={getNoteType(note.ntid)} key={note.id.toString()} index={i} />
-            ))}
+          <div
+            ref={parentRef}
+            className="h-[calc(100vh-4rem)] overflow-y-auto w-[max-content] min-w-[calc(100vw-20rem)]"
+          >
+            <div
+              className="flex flex-col divide-y w-[max-content] relative min-w-[calc(100vw-20rem)]"
+              style={{ height: `${rowVirtualizer.totalSize}px`, position: "relative" }}
+            >
+              {rowVirtualizer.virtualItems.map((virtualItem) => (
+                <NoteRow
+                  note={notes[virtualItem.index]!}
+                  type={getNoteType(notes[virtualItem.index]!.ntid)}
+                  index={virtualItem.index}
+                  key={virtualItem.key}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    height: `${virtualItem.size}px`,
+                    transform: `translateY(${virtualItem.start}px)`,
+                  }}
+                />
+              ))}
+            </div>
+            {isLoading &&
+              <div className="w-full flex items-center justify-center py-4"><ImSpinner className="animate-spin" /></div>}
           </div>
-          {isLoading &&
-            <div className="w-full flex items-center justify-center py-4"><ImSpinner className="animate-spin" /></div>}
         </main>
       </Layout>
     </>
@@ -103,7 +137,7 @@ const Layout: React.FC<HTMLProps<HTMLDivElement>> = ({ children, ...props }) => 
           </ul>
         </nav>
       </aside>
-      <div className="col-span-5 overflow-y-scroll" {...props}>
+      <div className="col-span-5 overflow-hidden" {...props}>
         {children}
       </div>
     </div>
@@ -189,87 +223,15 @@ const useToggleStatus = (id: bigint, status: "queue" | "ready") => {
   return toggleStatus
 }
 
+interface NoteRowProps extends HTMLProps<HTMLDivElement> { note: ParsedNote, type?: ParsedNoteType, index: number }
 
-
-const NoteRow = ({ note, type, index }: { note: ParsedNote, type?: ParsedNoteType, index: number }) => {
+const NoteRow = ({ note, type, index, ...props }: NoteRowProps) => {
   const toggleStatus = useToggleStatus(note.id, note.status)
 
-  const [focus, setFocus] = useState<number | null>(null);
-  const [isEditing, setIsEditing] = useState<number | null>(null);
   const modelFields = useMemo(() => (type?.fields ?? []).sort((a, b) => a.ord - b.ord), [type?.fields])
+  const editor = useEditor(store => store);
+  const handleKeyDown = useMemo(() => editor.createKeyboardHandler(index), [editor, index])
 
-  const handleKeyDown = useCallback<KeyboardEventHandler>((e) => {
-    if (typeof document !== "undefined") {
-      const getId = (i: number) => focus != null ? `note-${i}-field-${focus}` : `note-${i}`;
-
-      if (e.code === "ArrowDown") {
-        document.getElementById(getId(index + 1))?.focus?.()
-      } else if (e.code === "ArrowUp") {
-        document.getElementById(getId(index - 1))?.focus?.()
-      } else if (e.code === "ArrowRight") {
-        let nextField = document.getElementById(`note-${index}-field-${(focus ?? -1) + 1}`)
-
-        if (!nextField) {
-          nextField = document.getElementById(`note-${index + 1}`)
-        }
-
-        nextField?.focus?.()
-
-        if (isEditing) {
-          setIsEditing((focus ?? -1) + 1)
-        }
-      } else if (e.code === "ArrowLeft") {
-        let prevField = document.getElementById(`note-${index}-field-${(focus ?? -1) - 1}`)
-
-        if (!prevField) {
-          prevField = document.getElementById(`note-${index - 1}`)
-        }
-        prevField?.focus?.()
-
-        if (isEditing) {
-          setIsEditing((focus ?? -1) - 1)
-        }
-
-      } else if (e.code === "Escape") {
-        // TODO: process enter
-        setIsEditing(null)
-
-        if (focus != null) {
-          setFocus(null)
-          document.getElementById(`note-${index}`)?.focus?.()
-        } else {
-          document.getElementById(`note-${index}`)?.blur?.()
-        }
-
-      } else if (e.code === "Enter") {
-        if (isEditing) {
-          setIsEditing(null)
-        } else {
-          document.getElementById(`note-${index}-field-${focus ?? -1}`)?.focus?.()
-          setFocus((focus ?? -1) + 1)
-          e.preventDefault()
-          e.stopPropagation()
-        }
-      } else if (focus === null) {
-        console.log(e.key, parseInt(e.key))
-        if (["1", "2", "3", "4", "5", "6", "7", "8", "9"].includes(e.key)) {
-          document.getElementById(`note-${index}-field-${parseInt(e.key) - 1}`)?.focus?.()
-          setFocus(parseInt(e.key) - 1)
-          e.preventDefault()
-          e.stopPropagation()
-        }
-      } else if (!isEditing && !["Tab", "ShiftLeft", "ShiftRight", "MetaRight", "MetaLeft", "ControlLeft", "ControlRight", "AltLeft", "AltRight"].includes(e.code)) {
-        console.log(e.code)
-        setIsEditing(focus)
-      }
-    }
-  }, [index, focus, isEditing, setIsEditing])
-
-  const moveCaretToEnd = useCallback<FocusEventHandler<HTMLTextAreaElement>>((e) => {
-    const temp_value = e.target.value
-    e.target.value = ''
-    e.target.value = temp_value
-  }, [])
 
   const statusIcon = useMemo(() => note.status === "queue"
     ? <HiClock tabIndex={0} className="bg-warning text-white btn btn-circle btn-xs" onClick={toggleStatus} />
@@ -282,40 +244,145 @@ const NoteRow = ({ note, type, index }: { note: ParsedNote, type?: ParsedNoteTyp
     return <></>
   }
 
-
   return (
     <div
-      className="flex flex-row divide-x-2 w-full focus:bg-base-200 focus:border-y-2 outline-none"
-      key={note.id.toString()}
-      id={`note-${index}`}
-      onKeyDown={handleKeyDown}
       tabIndex={0}
+      onMouseOver={() => editor.setRowHover(index)}
+      {...props}
+      className={
+        clsx(
+          "flex flex-row divide-x-2 w-full focus:bg-base-200 focus:border-y-2 outline-none",
+          editor.rowHover === index && "bg-base-200",
+          props.className
+        )
+      }
+      onKeyDown={handleKeyDown}
     >
       <div className="flex justify-center items-center px-4">
         {statusIcon}
       </div>
       {note.fields.map((field, i) => (
-        <div
-          className="flex flex-1 flex-col px-2 min-w-[150px] overflow-hidden focus:bg-base-200"
-          key={i}
-          tabIndex={0}
-          onFocus={() => setFocus(i)}
-          onBlur={() => setFocus(null)}
-          id={`note-${index}-field-${i}`}
-          onClick={() => setIsEditing(i)}
-        >
-          <label key={i} className="w-full text-xs opacity-50 pt-2">{modelFields[i]?.name}</label>
-          {
-            (isEditing === i) ?
-              <textarea defaultValue={field} autoFocus className="h-full focus:bg-base-200" onFocus={moveCaretToEnd} />
-              : <div dangerouslySetInnerHTML={{ __html: field }} />
-          }
-        </div>
+        <MemoizedRowField key={i} row={index} col={i} field={field} label={modelFields[i]?.name} />
       ))}
     </div>
   )
 }
 
 
+const RowField = ({ label, field, row, col }: { label: string | undefined, field: string, row: number, col: number }) => {
+  const [isEditing, fieldSelection, setFieldSelection] = useEditor(store => [store.isEditing, store.fieldSelection, store.setFieldSelection], shallow);
+
+  const select = useCallback(() => setFieldSelection(col), [col, setFieldSelection]);
+
+  return (
+    <div
+      className="flex flex-1 flex-col px-2 min-w-[150px] overflow-hidden focus:bg-base-200"
+      onClick={select}
+    >
+      <label className="w-full text-xs opacity-50 pt-2">{label}</label>
+      {
+        (isEditing && fieldSelection === col) ?
+          <textarea defaultValue={field} autoFocus className="h-full focus:bg-base-200" onFocus={moveCaretToEnd} />
+          : <div dangerouslySetInnerHTML={{ __html: field }} />
+      }
+    </div>
+  )
+}
+
+const moveCaretToEnd: FocusEventHandler<HTMLTextAreaElement> = (e) => {
+  const temp_value = e.target.value
+  e.target.value = ''
+  e.target.value = temp_value
+}
+
+const MemoizedRowField = memo(RowField)
+
 
 export default Home;
+
+
+type EditorStore = {
+  rowHover: number | null,
+  rowSelection: null | number | [number, number],
+  fieldSelection: null | number,
+  isEditing: boolean,
+  setRowHover: (row: number | null) => void,
+  setRowSelection: (row: number | [number, number] | null) => void,
+  setFieldSelection: (field: number | null) => void,
+  createKeyboardHandler: (index: number) => (e: KeyboardEvent) => void,
+}
+
+
+const useEditor = create<EditorStore>((set, get) => ({
+  rowHover: null,
+  rowSelection: null,
+  fieldSelection: null,
+  isEditing: false,
+
+  setRowHover(row) {
+    set({ rowHover: row })
+  },
+  setRowSelection(row) {
+    set({ rowSelection: row })
+  },
+  setFieldSelection(field) {
+    set({ fieldSelection: field })
+  },
+
+  createKeyboardHandler: (index) => (e) => {
+    if (typeof document !== "undefined") {
+      const { rowSelection, rowHover, fieldSelection, isEditing, setRowSelection, setFieldSelection } = get();
+
+      const moveRow = (dY: number) => {
+        if (e.shiftKey) {
+          if (Array.isArray(rowSelection)) {
+            if (index === rowSelection[0]) {
+              setRowSelection([index + dY, rowSelection[1]])
+            } else {
+              setRowSelection([rowSelection[0], index + dY])
+            }
+          } else {
+            setRowSelection([index, index])
+          }
+        } else {
+          setRowSelection(index + dY)
+        }
+      }
+
+      const moveField = (dX: number) => {
+        setFieldSelection((fieldSelection ?? 0) + dX)
+      }
+
+      const escape = () => {
+        if (isEditing) {
+          set({ isEditing: false })
+        } else if (fieldSelection) {
+          setFieldSelection(null)
+        } else {
+          setRowSelection(null)
+        }
+      }
+
+      if (e.code === "ArrowDown") {
+        moveRow(1)
+      } else if (e.code === "ArrowUp") {
+        moveRow(-1)
+      } else if (e.code === "ArrowRight") {
+        moveField(1)
+      } else if (e.code === "ArrowLeft") {
+        moveField(-1)
+      } else if (e.code === "Escape" || e.code === "Enter") {
+        escape()
+      } else if (focus === null && ["1", "2", "3", "4", "5", "6", "7", "8", "9"].includes(e.key)) {
+        setFieldSelection(parseInt(e.key))
+      } else if (!isEditing && !["Tab", "ShiftLeft", "ShiftRight", "MetaRight", "MetaLeft", "ControlLeft", "ControlRight", "AltLeft", "AltRight"].includes(e.code)) {
+        set({ isEditing: true })
+      } else {
+        return
+      }
+      e.preventDefault()
+      e.stopPropagation()
+    }
+  }
+
+}))

@@ -5,7 +5,7 @@ import { t } from "./context";
 
 const notesRouter = t.router({
     paginate: t.procedure.input(z.object({
-        limit: z.number().min(1).max(100).default(25),
+        limit: z.number().min(1).max(100).default(10),
         cursor: z.number().default(0),
         did: z.number().transform(BigInt).or(z.array(z.number()).transform(ns => ns.map(BigInt))).nullish(),
         status: z.enum(['queue', "ready"]).optional()
