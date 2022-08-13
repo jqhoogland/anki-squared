@@ -29,7 +29,7 @@ const notesRouter = t.router({
                 cards: cardFindArgs,
             },
             orderBy: {
-                id: 'asc'
+                id: 'desc'
             },
             take: input.limit,
             skip: input.cursor,

@@ -1,3 +1,15 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+.scrollbar-x-hidden { 
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+    scrollbar-width: none;
+    padding-bottom: 0
+}
+
+.scrollbar-x-hidden::-webkit-scrollbar {
+    display: none;
+}
+

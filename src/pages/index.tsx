@@ -1,6 +1,6 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import React, { HTMLProps, UIEvent, UIEventHandler, useCallback, useMemo, useRef, useState } from "react";
+import React, { HTMLProps, KeyboardEventHandler, UIEvent, UIEventHandler, useCallback, useMemo, useRef, useState } from "react";
 import { trpc } from "../utils/trpc";
 import { Field, Note } from '@prisma/client';
 import { NoteType } from '@prisma/client';
@@ -54,8 +54,8 @@ const Home: NextPage = () => {
       <Layout onScroll={handleScroll}>
         <main className="min-h-[100vh]py-16" >
           <div className="flex flex-col gap-2 divide-y">
-            {notes.map(note => (
-              <NoteRow note={note} type={getNoteType(note.ntid)} key={note.id.toString()} />
+            {notes.map((note, i) => (
+              <NoteRow note={note} type={getNoteType(note.ntid)} key={note.id.toString()} index={i} />
             ))}
           </div>
           {isLoading &&
@@ -132,8 +132,37 @@ const DeckLI: React.FC<{ deck: DeckWithChildren }> = ({ deck }) => {
   )
 }
 
-const NoteRow = ({ note, type }: { note: ParsedNote, type?: ParsedNoteType }) => {
+const NoteRow = ({ note, type, index }: { note: ParsedNote, type?: ParsedNoteType, index: number }) => {
+  const [focus, setFocus] = useState<number | null>(null);
   const modelFields = useMemo(() => (type?.fields ?? []).sort((a, b) => a.ord - b.ord), [type?.fields])
+
+  const handleKeyDown = useCallback<KeyboardEventHandler>((e) => {
+    if (typeof document !== "undefined") {
+      const getId = (i: number) => focus != null ? `note-${i}-field-${focus}` : `note-${i}`;
+
+      if (e.code === "ArrowDown") {
+        document.getElementById(getId(index + 1))?.focus?.()
+      } else if (e.code === "ArrowUp") {
+        document.getElementById(getId(index - 1))?.focus?.()
+      } else if (e.code === "ArrowRight") {
+        let nextField = document.getElementById(`note-${index}-field-${(focus ?? -1) + 1}`)
+
+        if (!nextField) {
+          nextField = document.getElementById(`note-${index + 1}`)
+        }
+
+        nextField?.focus?.()
+      } else if (e.code === "ArrowLeft") {
+        let prevField = document.getElementById(`note-${index}-field-${(focus ?? -1) - 1}`)
+
+        if (!prevField) {
+          prevField = document.getElementById(`note-${index - 1}`)
+        }
+
+        prevField?.focus?.()
+      }
+    }
+  }, [index, focus])
 
   if (!type) {
     console.error("No type found for note", note)
@@ -141,9 +170,24 @@ const NoteRow = ({ note, type }: { note: ParsedNote, type?: ParsedNoteType }) =>
   }
 
   return (
-    <div className="py-2 flex flex-row divide-x-2" key={note.id.toString()}>
+    <div
+      className="scrollbar-x-hidden py-2 flex flex-row divide-x-2 w-full overflow-scroll"
+      key={note.id.toString()}
+      id={`note-${index}`}
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+    >
+      <div className="flex flex-0 items-align">
+      </div>
       {note.fields.map((field, i) => (
-        <div className="flex flex-1 flex-col px-2" key={i}>
+        <div
+          className="flex flex-1 flex-col px-2 min-w-[150px] overflow-hidden"
+          key={i}
+          tabIndex={0}
+          onFocus={() => setFocus(i)}
+          onBlur={() => setFocus(null)}
+          id={`note-${index}-field-${i}`}
+        >
           <label key={i} className="w-full text-xs opacity-50 ">{modelFields[i]?.name}</label>
           <div dangerouslySetInnerHTML={{ __html: field }} />
         </div>
