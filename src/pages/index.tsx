@@ -19,7 +19,10 @@ type TechnologyCardProps = {
 };
 
 const Home: NextPage = () => {
-  const { data } = trpc.proxy.notes.paginate.useInfiniteQuery({}, {
+  const router = useRouter();
+  const { data } = trpc.proxy.notes.paginate.useInfiniteQuery({
+    did: router.query.did
+  }, {
     getNextPageParam: (lastPage) => lastPage.nextCursor
   })
 
@@ -55,7 +58,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { data: decks } = trpc.proxy.decks.hierarchy.useQuery();
 
   return (
-    <div className="grid grid-cols-6">
+    <div className="grid grid-cols-6 min-h-[100vh]">
       <aside className="col-span-1 bg-base-300">
         <header className="px-4 pt-4 pb-2 border-b">
           <h1 className="text-3xl leading-normal font-extrabold ">
@@ -83,7 +86,7 @@ const DeckLI: React.FC<{ deck: DeckWithChildren }> = ({ deck }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const select = () => {
-    router.query.deck = deck.id.toString();
+    router.query.did = deck.id.toString();
     router.push(router)
   }
   const toggle = () => {

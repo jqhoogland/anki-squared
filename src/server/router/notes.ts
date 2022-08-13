@@ -1,21 +1,39 @@
-import { Field, Note, NoteType, Template } from "@prisma/client";
+import { Field, Note, NoteType, Prisma, Template } from "@prisma/client";
 import { z } from "zod";
 import { t } from "./context";
 
 const notesRouter = t.router({
     paginate: t.procedure.input(z.object({
         limit: z.number().min(1).max(100).default(25),
-        cursor: z.number().default(0)
+        cursor: z.number().default(0),
+        did: z.string().or(z.array(z.string())).nullish(),
     })).query(async ({ input, ctx }) => {
+        let cardFindArgs: true | Prisma.CardListRelationFilter = { some: {} };
+
+        if (typeof input.did === 'string') {
+            cardFindArgs = {
+                some: {
+                    did: BigInt(input.did)
+                }
+            }
+        } else if (Array.isArray(input.did)) {
+            cardFindArgs = {
+                some: {
+                    did: { in: input.did.map(BigInt) }
+                }
+            }
+        }
+
+        console.log({ cardFindArgs })
         const items = (await ctx.prisma.note.findMany({
+            where: {
+                cards: cardFindArgs,
+            },
             orderBy: {
                 id: 'asc'
             },
             take: input.limit,
             skip: input.cursor,
-            include: {
-                cards: true,
-            }
         })).map(parseNote)
 
         let nextCursor: number | null = null;

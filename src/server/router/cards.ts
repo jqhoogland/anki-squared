@@ -8,10 +8,13 @@ const cardsRouter = t.router({
     })).query(async ({ input, ctx }) => {
         const items = await ctx.prisma.card.findMany({
             orderBy: {
-                id: 'asc'
+                id: 'asc',
             },
             take: input.limit,
-            skip: input.cursor
+            skip: input.cursor,
+            include: {
+                note: true
+            }
         })
 
         let nextCursor: number | null = null;
