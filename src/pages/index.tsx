@@ -133,17 +133,17 @@ const DeckLI: React.FC<{ deck: DeckWithChildren }> = ({ deck }) => {
 }
 
 const NoteRow = ({ note, type }: { note: ParsedNote, type?: ParsedNoteType }) => {
+  const modelFields = useMemo(() => (type?.fields ?? []).sort((a, b) => a.ord - b.ord), [type?.fields])
+
   if (!type) {
     console.error("No type found for note", note)
     return <></>
   }
 
-  const modelFields = type.fields.sort((a, b) => a.ord - b.ord)
-
-
   return (
-    <div className="" key={note.id.toString()}>
-      {note.fields.map((field, i) => <p key={i}><b>{modelFields[i]?.name}</b>: {field}</p>)}
+    <div className="px-4 py-2" key={note.id.toString()}>
+      <div className="grid grid-cols-4 text-xs opacity-50">{modelFields.map((field, i) => <span key={i}>{field.name}</span>)}</div>
+      <div className="grid grid-cols-4">{note.fields.map((field, i) => <div className="" key={i}>{field}</div>)}</div>
     </div>
   )
 }
