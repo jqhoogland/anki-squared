@@ -51,11 +51,11 @@ const Home: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <Layout onScroll={handleScroll}>
-        <main >
-          <header className="navbar bg-base-200 px-4">
+        <main className="w-[max-content]">
+          <header className="navbar bg-base-200 px-4 w-full">
             <Filters />
           </header>
-          <div className="flex flex-col gap-2 divide-y">
+          <div className="flex flex-col gap-2 divide-y w-[max-content]">
             {notes.map((note, i) => (
               <NoteRow note={note} type={getNoteType(note.ntid)} key={note.id.toString()} index={i} />
             ))}
