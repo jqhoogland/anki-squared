@@ -68,6 +68,7 @@ const Home: NextPage = () => {
   );
 };
 
+
 const Filters = () => {
   const router = useRouter();
   const status = useFilterParams().status;
@@ -77,6 +78,7 @@ const Filters = () => {
   }, [router, status]);
 
   return (
+    // TODO: Dropdown menu
     <button className="btn btn-sm btn-outline" onClick={toggleStatus}>{status ?? "No Filters"}</button>
   )
 }
@@ -235,7 +237,18 @@ const NoteRow = ({ note, type, index }: { note: ParsedNote, type?: ParsedNoteTyp
         if (isEditing) {
           setIsEditing(null)
         } else {
+          document.getElementById(`note-${index}-field-${focus ?? -1}`)?.focus?.()
           setFocus((focus ?? -1) + 1)
+          e.preventDefault()
+          e.stopPropagation()
+        }
+      } else if (focus === null) {
+        console.log(e.key, parseInt(e.key))
+        if (["1", "2", "3", "4", "5", "6", "7", "8", "9"].includes(e.key)) {
+          document.getElementById(`note-${index}-field-${parseInt(e.key) -1}`)?.focus?.()
+          setFocus(parseInt(e.key) - 1)
+          e.preventDefault()
+          e.stopPropagation()
         }
       } else if (!isEditing && !["Tab", "ShiftLeft", "ShiftRight", "MetaRight", "MetaLeft", "ControlLeft", "ControlRight", "AltLeft", "AltRight"].includes(e.code)) {
         console.log(e.code)
