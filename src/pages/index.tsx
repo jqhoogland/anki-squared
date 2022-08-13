@@ -1,6 +1,6 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import React, { HTMLProps, KeyboardEventHandler, UIEvent, UIEventHandler, useCallback, useMemo, useRef, useState } from "react";
+import React, { FocusEventHandler, HTMLProps, KeyboardEventHandler, UIEvent, UIEventHandler, useCallback, useMemo, useRef, useState } from "react";
 import { trpc } from "../utils/trpc";
 import { Field, Note } from '@prisma/client';
 import { NoteType } from '@prisma/client';
@@ -134,6 +134,7 @@ const DeckLI: React.FC<{ deck: DeckWithChildren }> = ({ deck }) => {
 
 const NoteRow = ({ note, type, index }: { note: ParsedNote, type?: ParsedNoteType, index: number }) => {
   const [focus, setFocus] = useState<number | null>(null);
+  const [isEditing, setIsEditing] = useState<number | null>(null);
   const modelFields = useMemo(() => (type?.fields ?? []).sort((a, b) => a.ord - b.ord), [type?.fields])
 
   const handleKeyDown = useCallback<KeyboardEventHandler>((e) => {
@@ -152,22 +153,49 @@ const NoteRow = ({ note, type, index }: { note: ParsedNote, type?: ParsedNoteTyp
         }
 
         nextField?.focus?.()
+
+        if (isEditing) {
+          setIsEditing((focus ?? -1) + 1)
+        }
       } else if (e.code === "ArrowLeft") {
         let prevField = document.getElementById(`note-${index}-field-${(focus ?? -1) - 1}`)
 
         if (!prevField) {
           prevField = document.getElementById(`note-${index - 1}`)
         }
-
         prevField?.focus?.()
+
+        if (isEditing) {
+          setIsEditing((focus ?? -1) - 1)
+        }
+
+      } else if (e.code === "Escape") {
+        // TODO: process enter
+        setIsEditing(null)
+      } else if (e.code === "Enter") {
+        if (isEditing) {
+          setIsEditing(null)
+        } else {
+          setFocus((focus ?? -1) + 1)
+        }
+      } else if (!isEditing && !["Tab", "ShiftLeft", "ShiftRight", "MetaRight", "MetaLeft", "ControlLeft", "ControlRight", "AltLeft", "AltRight"].includes(e.code)) {
+        console.log(e.code)
+        setIsEditing(focus)
       }
     }
-  }, [index, focus])
+  }, [index, focus, isEditing, setIsEditing])
+
+  const moveCaretToEnd = useCallback<FocusEventHandler<HTMLTextAreaElement>>((e) => {
+    const temp_value = e.target.value
+    e.target.value = ''
+    e.target.value = temp_value
+  }, [])
 
   if (!type) {
     console.error("No type found for note", note)
     return <></>
   }
+
 
   return (
     <div
@@ -178,6 +206,7 @@ const NoteRow = ({ note, type, index }: { note: ParsedNote, type?: ParsedNoteTyp
       tabIndex={0}
     >
       <div className="flex flex-0 items-align">
+
       </div>
       {note.fields.map((field, i) => (
         <div
@@ -187,9 +216,14 @@ const NoteRow = ({ note, type, index }: { note: ParsedNote, type?: ParsedNoteTyp
           onFocus={() => setFocus(i)}
           onBlur={() => setFocus(null)}
           id={`note-${index}-field-${i}`}
+          onClick={() => setIsEditing(i)}
         >
           <label key={i} className="w-full text-xs opacity-50 ">{modelFields[i]?.name}</label>
-          <div dangerouslySetInnerHTML={{ __html: field }} />
+          {
+            (isEditing === i) ?
+              <textarea defaultValue={field} autoFocus className="h-full" onFocus={moveCaretToEnd} />
+              : <div dangerouslySetInnerHTML={{ __html: field }} />
+          }
         </div>
       ))}
     </div>
