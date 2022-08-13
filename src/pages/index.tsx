@@ -12,7 +12,6 @@ import { ImSpinner } from "react-icons/im";
 import clsx from "clsx";
 import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { useRouter } from "next/router";
-import { Html } from "next/document";
 import { updatePaginatedItem } from '../utils/pagination';
 
 type TechnologyCardProps = {
@@ -37,6 +36,7 @@ const Home: NextPage = () => {
 
   const handleScroll = useCallback<UIEventHandler<HTMLDivElement>>(
     (e) => {
+      // @ts-ignore
       const bottom = e.target.scrollHeight - e.target.scrollTop <= e.target.clientHeight + 300;
       if (bottom) {
         fetchNextPage()
@@ -51,7 +51,10 @@ const Home: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <Layout onScroll={handleScroll}>
-        <main className="min-h-[100vh]py-16" >
+        <main >
+          <header className="navbar bg-base-200 px-4">
+            <Filters />
+          </header>
           <div className="flex flex-col gap-2 divide-y">
             {notes.map((note, i) => (
               <NoteRow note={note} type={getNoteType(note.ntid)} key={note.id.toString()} index={i} />
@@ -64,6 +67,19 @@ const Home: NextPage = () => {
     </>
   );
 };
+
+const Filters = () => {
+  const router = useRouter();
+  const status = useFilterParams().status;
+  const toggleStatus = useCallback(() => {
+    router.query.status = status === 'queue' ? undefined : status === 'ready' ? 'queue' : 'ready'
+    router.push(router)
+  }, [router, status]);
+
+  return (
+    <button className="btn btn-sm btn-outline" onClick={toggleStatus}>{status ?? "No Filters"}</button>
+  )
+}
 
 const Layout: React.FC<HTMLProps<HTMLDivElement>> = ({ children, ...props }) => {
   const { data: decks } = trpc.proxy.decks.hierarchy.useQuery();
@@ -133,17 +149,17 @@ const DeckLI: React.FC<{ deck: DeckWithChildren }> = ({ deck }) => {
 
 const useFilterParams = () => {
   const router = useRouter();
-  const queryParams: Record<string, any> = { ...router.query };
+  const queryParams: { did?: number | number[], status?: "queue" | "ready" } = {};
 
-  if (router.query.queue) {
-    if (typeof router.query.queue === "string") {
-      queryParams.queue = router.query.queue === "true" || router.query.queue === "1";
-    } else {
-      delete queryParams.queue;
-    }
+  if (router.query.status === "queue" || router.query.status === "ready") {
+    queryParams.status = router.query.status as "queue" | "ready";
   }
 
-  console.log({ queryParams }, router.query)
+  if (typeof router.query.did === "string") {
+    queryParams.did = parseInt(router.query.did);
+  } else if (Array.isArray(router.query.did)) {
+    queryParams.did = router.query.did.map(parseInt);
+  }
 
   return queryParams
 }

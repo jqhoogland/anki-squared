@@ -7,29 +7,41 @@ const notesRouter = t.router({
     paginate: t.procedure.input(z.object({
         limit: z.number().min(1).max(100).default(25),
         cursor: z.number().default(0),
-        did: z.string().or(z.array(z.string())).nullish(),
-        queue: z.boolean().optional()
+        did: z.number().transform(BigInt).or(z.array(z.number()).transform(ns => ns.map(BigInt))).nullish(),
+        status: z.enum(['queue', "ready"]).optional()
     })).query(async ({ input, ctx }) => {
         let cardFindArgs: true | Prisma.CardListRelationFilter = { some: {} };
 
-        if (typeof input.did === 'string') {
+        if (typeof input.did === 'bigint') {
             cardFindArgs = {
                 some: {
-                    did: BigInt(input.did)
+                    did: input.did
                 }
             }
         } else if (Array.isArray(input.did)) {
             cardFindArgs = {
                 some: {
-                    did: { in: input.did.map(BigInt) }
+                    did: { in: input.did }
                 }
+            }
+        }
+
+        let statusFilters = {}
+
+        if (input.status === "queue") {
+            statusFilters = {
+                tags: { startsWith: " 1" }
+            }
+        } else if (input.status === "ready") {
+            statusFilters = {
+                NOT: { tags: { startsWith: " 1" } }
             }
         }
 
         const items = (await ctx.prisma.note.findMany({
             where: {
                 cards: cardFindArgs,
-                ...(input.queue ? { tags: { startsWith: " 1" } } : {})
+                ...statusFilters
             },
             orderBy: [
                 {
