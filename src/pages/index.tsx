@@ -233,6 +233,14 @@ const NoteRow = ({ note, type, index }: { note: ParsedNote, type?: ParsedNoteTyp
       } else if (e.code === "Escape") {
         // TODO: process enter
         setIsEditing(null)
+
+        if (focus != null) {
+          setFocus(null)
+          document.getElementById(`note-${index}`)?.focus?.()
+        } else {
+          document.getElementById(`note-${index}`)?.blur?.()
+        }
+
       } else if (e.code === "Enter") {
         if (isEditing) {
           setIsEditing(null)
@@ -245,7 +253,7 @@ const NoteRow = ({ note, type, index }: { note: ParsedNote, type?: ParsedNoteTyp
       } else if (focus === null) {
         console.log(e.key, parseInt(e.key))
         if (["1", "2", "3", "4", "5", "6", "7", "8", "9"].includes(e.key)) {
-          document.getElementById(`note-${index}-field-${parseInt(e.key) -1}`)?.focus?.()
+          document.getElementById(`note-${index}-field-${parseInt(e.key) - 1}`)?.focus?.()
           setFocus(parseInt(e.key) - 1)
           e.preventDefault()
           e.stopPropagation()
