@@ -12,6 +12,8 @@
   "dependencies": {
     "@formkit/auto-animate": "^1.0.0-beta.1",
     "@prisma/client": "^3.15.2",
+    "@radix-ui/react-hover-card": "^1.0.0",
+    "@radix-ui/react-portal": "^1.0.0",
     "@tailwindcss/typography": "^0.5.4",
     "@tanstack/react-virtual": "^3.0.0-alpha.0",
     "@tanstack/virtual-core": "^3.0.0-beta.9",

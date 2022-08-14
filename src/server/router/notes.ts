@@ -144,11 +144,15 @@ const notesRouter = t.router({
     undelete: t.procedure.input(z.object({ noteIds: z.array(z.bigint()), cardIds: z.array(z.bigint()) })).mutation(async ({ input, ctx }) => {
         graveIds = null;
 
-        return ctx.prisma.grave.deleteMany({
+        const ungraved = await ctx.prisma.grave.deleteMany({
             where: {
                 oid: { in: [...input.noteIds, ...input.cardIds] },
             }
         })
+
+        console.log(chalk.green('notes.undelete DELETE CARD/NOTE GRAVE'), ungraved.count)
+
+        return ungraved;
     })
 
 })

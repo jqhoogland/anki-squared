@@ -19,6 +19,8 @@ import { useVirtual } from "@tanstack/react-virtual"
 import useEvent from "react-use/lib/useEvent";
 import range from "lodash-es/range"
 import { UseInfiniteQueryOptions } from "react-query";
+import chalk from 'chalk';
+import * as Portal from "@radix-ui/react-portal";
 
 const useNotes = (props?: UseInfiniteQueryOptions) => {
   const queryParams = useFilterParams();
@@ -40,15 +42,17 @@ const Home: NextPage = () => {
     return noteTypes?.find(nt => nt.id === ntid)
   }, [noteTypes])
 
+  const logScroll = useEditor(store => store.logScroll)
 
   const handleScroll = useCallback<UIEventHandler<HTMLDivElement>>(
     (e) => {
+      logScroll()
       // @ts-ignore
       const bottom = e.target.scrollHeight - e.target.scrollTop <= e.target.clientHeight + 300;
       if (bottom) {
         fetchNextPage()
       }
-    }, [fetchNextPage])
+    }, [fetchNextPage, logScroll])
 
   const parentRef = useRef<HTMLDivElement | null>(null)
   const rowVirtualizer = useVirtual({
@@ -135,10 +139,12 @@ const useDelete = () => {
     if (typeof window === "undefined" || (window.prompt("Are you sure? (y/n)") !== "y")) {
       throw new Error("Delete cancelled")
     };
+    const noteIds = getSelectedNotes(notes).map(n => n.id);
+    const asyncDeleteNotes = async (ids: bigint[]) => new Promise<{ noteIds: bigint[], cardIds: bigint[] }>(resolve => deleteNotes({ ids }, { onSuccess: resolve }));
 
     const action = {
       type: "delete" as const,
-      ...(await deleteNotes({ ids: getSelectedNotes(notes).map(n => n.id) }))
+      ...(await asyncDeleteNotes(noteIds)),
     }
 
     return action
@@ -353,23 +359,62 @@ const NoteRow = ({ note, type, index, ...props }: NoteRowProps) => {
 
 
 const RowField = ({ label, field, row, col }: { label: string | undefined, field: string, row: number, col: number }) => {
-  const [isEditing, fieldSelection, setFieldSelection] = useEditor(store => [store.isEditing, store.fieldSelection, store.setFieldSelection], shallow);
+  const ref = useRef<HTMLDivElement | null>(null);
 
+  const [isEditing, fieldSelection, setFieldSelection] = useEditor(store => [store.isEditing, store.fieldSelection, store.setFieldSelection], shallow);
+  const [_, isScrolling] = useEditor(store => [store.lastScrollTime, store.isScrolling()], shallow);
   const select = useCallback(() => setFieldSelection(col), [col, setFieldSelection]);
+
+  const [_isHovering, setIsHovering] = useState(false);
+  const handleMouseOver = useCallback(() => setIsHovering(true), [setIsHovering]);
+  const handleMouseOut = useCallback(() => setIsHovering(false), [setIsHovering]);
+
+  const isHovering = _isHovering
+    && (ref.current?.children?.[0]?.clientHeight ?? 0) > 100
+    && !isScrolling;
+
+
+  const contents = useMemo(() => {
+    const contents = (
+      <div className={clsx("w-full h-[max-content]")}>
+        <label className="w-full text-xs opacity-50 pt-2">{label}</label>
+        {
+          (isEditing && fieldSelection === col) ?
+            <textarea defaultValue={field} autoFocus className="h-full" onFocus={moveCaretToEnd} />
+            : <div dangerouslySetInnerHTML={{ __html: field }} />
+        }
+      </div>
+    )
+
+    if (isHovering) {
+      // TODO: Animate this?
+      const { top, left, width } = ref.current?.getBoundingClientRect() ?? {};
+      return (
+        <Portal.Root
+          className={
+            "fixed bg-base-200 px-2 border-l-2 border-b-2  border-base-300 pointer-events-none"
+          }
+          style={{ top, left, width, minHeight: 100 }}
+        >
+          {contents}
+        </Portal.Root>
+      )
+    }
+
+    return contents;
+  }, [isHovering, label, fieldSelection, col, field, isEditing,])
 
   return (
     <div
       className={
-        clsx("flex flex-1 flex-col px-2 min-w-[150px] overflow-hidden focus:bg-base-200",)
+        "flex flex-1 flex-col min-w-[150px] overflow-hidden px-2"
       }
-      onClick={select}
+      // onClick={select}
+      ref={ref}
+      onMouseOver={handleMouseOver}
+      onMouseOut={handleMouseOut}
     >
-      <label className="w-full text-xs opacity-50 pt-2">{label}</label>
-      {
-        (isEditing && fieldSelection === col) ?
-          <textarea defaultValue={field} autoFocus className="h-full focus:bg-base-200" onFocus={moveCaretToEnd} />
-          : <div dangerouslySetInnerHTML={{ __html: field }} />
-      }
+      {contents}
     </div>
   )
 }
@@ -393,17 +438,21 @@ type Action = {
 
 
 type EditorStore = {
-  rowHover: number | null,
-  rowSelection: null | number | { anchor: number, cursor: number },
-  getSelectionRange: () => [number, number],
+  isScrolling: () => boolean;
+  lastScrollTime: Date;
+  logScroll: () => void;
+
+  rowHover: number | null;
+  rowSelection: null | number | { anchor: number, cursor: number };
+  getSelectionRange: () => [number, number];
   getSelectedNotes: <T extends { id: bigint }>(notes: T[]) => T[];
 
-  fieldSelection: null | number,
-  isEditing: boolean,
-  setRowHover: (row: number | null) => void,
-  setRowSelection: (row: number | { anchor: number, cursor: number } | null) => void,
-  setFieldSelection: (field: number | null) => void,
-  keyboardHandler: KeyboardEventHandler,
+  fieldSelection: null | number;
+  isEditing: boolean;
+  setRowHover: (row: number | null) => void;
+  setRowSelection: (row: number | { anchor: number, cursor: number } | null) => void;
+  setFieldSelection: (field: number | null) => void;
+  keyboardHandler: KeyboardEventHandler;
 
   // An event-based system makes managing history (& undos) easier
   on: <T extends Action>(action: T['type'], doHandler: () => T | Promise<T>, undoHandler: (action: T) => void) => void;
@@ -419,6 +468,10 @@ type EditorStore = {
 
 
 const useEditor = create<EditorStore>((set, get) => ({
+  isScrolling: () => get().lastScrollTime.getTime() > (new Date().getTime() - 250),
+  lastScrollTime: new Date(),
+  logScroll: () => set({ lastScrollTime: new Date() }),
+
   rowHover: null,
   rowSelection: null,
   fieldSelection: null,
@@ -494,7 +547,7 @@ const useEditor = create<EditorStore>((set, get) => ({
       if (e.metaKey) {
         if ((e.code === "Delete" || e.code === "Backspace")) {
           get().fire("delete")
-        } else if (e.code === "Z") {
+        } else if (e.key === "z") {
           get().undo()
         }
       } else if (e.code === "ArrowDown") {
@@ -544,6 +597,7 @@ const useEditor = create<EditorStore>((set, get) => ({
   },
   async undo() {
     const action = get().actions.pop()
+    console.log(chalk.red("UNDO"), action)
 
     if (action) {
       get().undoHandlers[action.type]?.(action)
