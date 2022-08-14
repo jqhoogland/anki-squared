@@ -1,11 +1,23 @@
 import { Field, Note, NoteType, Prisma, Template } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
+import chalk from "chalk";
 import { z } from "zod";
 import { t } from "./context";
 
+// Simple cache so we don't have to fire this with every pagination request
+let graveIds: null | undefined | bigint[] = null;
+const getGraveIds = async () => {
+    if (graveIds) {
+        return graveIds;
+    }
+    graveIds = await prisma?.grave.findMany().then(gs => gs.map(g => g.oid).filter(Boolean))
+
+    return graveIds as bigint[]
+}
+
 const notesRouter = t.router({
     paginate: t.procedure.input(z.object({
-        limit: z.number().min(1).max(100).default(10),
+        limit: z.number().min(1).max(100).default(25),
         cursor: z.number().default(0),
         did: z.number().transform(BigInt).or(z.array(z.number()).transform(ns => ns.map(BigInt))).nullish(),
         status: z.enum(['queue', "ready"]).optional()
@@ -28,19 +40,22 @@ const notesRouter = t.router({
 
         let statusFilters = {}
 
+        const graveIds = await getGraveIds();
+
         if (input.status === "queue") {
             statusFilters = {
                 tags: { startsWith: " 1" }
             }
         } else if (input.status === "ready") {
             statusFilters = {
-                NOT: { tags: { startsWith: " 1" } }
+                NOT: { tags: { startsWith: " 1" }, id: { in: graveIds } }
             }
         }
 
         const items = (await ctx.prisma.note.findMany({
             where: {
                 cards: cardFindArgs,
+                NOT: { id: { in: graveIds } },
                 ...statusFilters
             },
             orderBy: [
@@ -86,7 +101,56 @@ const notesRouter = t.router({
             })
         })
 
+    }),
+    delete: t.procedure.input(z.object({ ids: z.array(z.bigint()) })).mutation(async ({ input: { ids: noteIds }, ctx }) => {
+        const notes = await ctx.prisma?.note.findMany({ where: { id: { in: noteIds } }, include: { cards: true } });
+        graveIds = null;
+
+        const noteGraves = await Promise.all(noteIds.map(async noteId =>
+            ctx.prisma?.grave.create({
+                data:
+                    ({
+                        usn: -1,
+                        oid: noteId,
+                        type: 1
+                    })
+            })))
+        console.log(chalk.red(`notes.delete CREATE NOTE GRAVE`), noteGraves.map(g => g.oid).join(', '))
+
+        const cardIds = notes.flatMap(({ cards }) => cards.map(c => c.id));
+        const cardGraves = await Promise.all(cardIds.map(async cardId =>
+            ctx.prisma?.grave.create({
+                data:
+                    ({
+                        usn: -1,
+                        oid: cardId,
+                        type: 0
+                    })
+            }))
+        )
+        console.log(chalk.red(`notes.delete CREATE CARD GRAVE `), cardGraves.map(g => g.oid).join(', '))
+
+        await ctx.prisma.note.deleteMany({ where: { id: { in: noteIds } } })
+            .then(res => console.log(chalk.red(`notes.delete DELETE NOTE`), res.count))
+        await ctx.prisma.card.deleteMany({ where: { id: { in: cardIds } } })
+            .then(res => console.log(chalk.red(`notes.delete DELETE CARD`), res.count))
+
+        return {
+            noteIds,
+            cardIds,
+        }
+    }),
+    // Will require an additional sync to take effect
+    undelete: t.procedure.input(z.object({ noteIds: z.array(z.bigint()), cardIds: z.array(z.bigint()) })).mutation(async ({ input, ctx }) => {
+        graveIds = null;
+
+        return ctx.prisma.grave.deleteMany({
+            where: {
+                oid: { in: [...input.noteIds, ...input.cardIds] },
+            }
+        })
     })
+
 })
 
 export default notesRouter

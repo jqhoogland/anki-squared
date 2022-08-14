@@ -1,6 +1,6 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import React, { FocusEventHandler, HTMLProps, KeyboardEventHandler, memo, UIEvent, UIEventHandler, useCallback, useMemo, useRef, useState } from "react";
+import React, { FocusEventHandler, HTMLProps, KeyboardEventHandler, memo, UIEvent, UIEventHandler, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { trpc } from "../utils/trpc";
 import { Field, Note } from '@prisma/client';
 import { NoteType } from '@prisma/client';
@@ -12,28 +12,29 @@ import { ImSpinner } from "react-icons/im";
 import clsx from "clsx";
 import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { useRouter } from "next/router";
-import { updatePaginatedItem } from '../utils/pagination';
+import { updatePaginatedItem, removePaginatedItems } from '../utils/pagination';
 import create from "zustand";
 import shallow from "zustand/shallow";
 import { useVirtual } from "@tanstack/react-virtual"
 import useEvent from "react-use/lib/useEvent";
+import range from "lodash-es/range"
+import { UseInfiniteQueryOptions } from "react-query";
 
-type TechnologyCardProps = {
-  name: string;
-  description: string;
-  documentation: string;
-};
-
-const Home: NextPage = () => {
+const useNotes = (props?: UseInfiniteQueryOptions) => {
   const queryParams = useFilterParams();
   const { data, fetchNextPage, isLoading } = trpc.proxy.notes.paginate.useInfiniteQuery(queryParams, {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     refetchOnWindowFocus: false,
-
+    ...(props as any) // Otherwise we lose the type hints?
   })
-
-  const { data: noteTypes } = trpc.proxy.notes.types.useQuery();
   const notes = useMemo(() => (data?.pages ?? []).flatMap(page => page.items), [data])
+
+  return { notes, isLoading, fetchNextPage, queryParams }
+}
+
+const Home: NextPage = () => {
+  const { notes, isLoading, fetchNextPage } = useNotes();
+  const { data: noteTypes } = trpc.proxy.notes.types.useQuery();
 
   const getNoteType = useCallback((ntid: bigint) => {
     return noteTypes?.find(nt => nt.id === ntid)
@@ -58,9 +59,6 @@ const Home: NextPage = () => {
 
   const keyboardHandler = useEditor(store => store.keyboardHandler);
   useEvent('keydown', keyboardHandler as unknown as EventListenerOrEventListenerObject, typeof document !== "undefined" ? document : null)
-
-  const editor = useEditor()
-  console.log(editor)
 
   return (
     <>
@@ -106,9 +104,80 @@ const Home: NextPage = () => {
           </div>
         </main>
       </Layout>
+      <ActionBar />
     </>
   );
 };
+
+// This is messier than it has to be because of the synching between react-query's useQuery & zustand's store.
+// React-query gives us the mutation to perform a deletion & undo it server-side,
+// but we need to register the mutation in zustand, and then call the action via the zustand store `fire`. 
+const useDelete = () => {
+  const utils = trpc.useContext();
+  const { notes, queryParams } = useNotes({ refetchOnMount: false });
+  const { mutate: deleteNotes } = trpc.proxy.notes.delete.useMutation({
+    // @ts-ignore
+    onMutate: ({ ids }) => {
+      // @ts-ignore
+      utils.setInfiniteQueryData(['notes.paginate', queryParams], prev => removePaginatedItems(prev, ids))
+    }
+  });
+
+  const { mutate: undeleteNotes } = trpc.proxy.notes.undelete.useMutation({
+    onMutate: () => {
+      utils.queryClient.invalidateQueries(['notes.paginate', queryParams])
+    }
+  });
+
+  const [on, off, fire, getSelectedNotes] = useEditor(store => [store.on, store.off, store.fire, store.getSelectedNotes], shallow);
+
+  const handleDelete = useCallback(async () => {
+    if (typeof window === "undefined" || (window.prompt("Are you sure? (y/n)") !== "y")) {
+      throw new Error("Delete cancelled")
+    };
+
+    const action = {
+      type: "delete" as const,
+      ...(await deleteNotes({ ids: getSelectedNotes(notes).map(n => n.id) }))
+    }
+
+    return action
+  }, [deleteNotes, notes, getSelectedNotes])
+
+  const handleUndo = useCallback(({ type, ...rest }: Action) => {
+    undeleteNotes(rest)
+  }, [undeleteNotes])
+
+  useEffect(() => {
+    on("delete", handleDelete, handleUndo);
+    return () => off("delete");
+  }, [on, off, handleDelete, handleUndo])
+
+  return useCallback(() => fire("delete"), [fire])
+}
+
+const ActionBar = () => {
+  const rowSelection = useEditor(store => store.rowSelection);
+  const onDelete = useDelete();
+
+  if (typeof rowSelection === "number" || !rowSelection) {
+    return null;
+  }
+
+  const numSelected = Math.abs(rowSelection.cursor - rowSelection.anchor) + 1;
+
+  return (
+    <div className={
+      clsx(
+        "absolute bottom-8 w-80 left-[calc(50%-10rem)] shadow-lg bg-base-100 brightness-150 border-4 border-base-300 rounded-lg p-2",
+        "flex gap-2 items-center"
+      )
+    } >
+      <span>{numSelected} selected</span>
+      <button onClick={onDelete} className="btn btn-sm btn-outline">Delete</button>
+    </div>
+  )
+}
 
 
 const Filters = () => {
@@ -238,7 +307,7 @@ const NoteRow = ({ note, type, index, ...props }: NoteRowProps) => {
 
   const modelFields = useMemo(() => (type?.fields ?? []).sort((a, b) => a.ord - b.ord), [type?.fields])
   const editor = useEditor(store => store);
-  const [min, max] = editor.selectionRange();
+  const [min, max] = editor.getSelectionRange();
 
 
   const statusIcon = useMemo(() => note.status === "queue"
@@ -261,12 +330,14 @@ const NoteRow = ({ note, type, index, ...props }: NoteRowProps) => {
           "flex flex-row divide-x-2 w-full",
           (!editor.rowSelection && editor.rowHover === index) && "bg-base-200",
           (editor.rowSelection === index) && "bg-base-200 border-y-2 border-base-300",
-          (typeof editor.rowSelection !== "number" && min <= index && max >= index) && "bg-blue-100 dark:bg-blue-800 border-y-2 border-blue-200 dark:border-blue-900",
+          (typeof editor.rowSelection !== "number" && min <= index && max >= index) && "bg-blue-100 dark:bg-slate-800 border-y-2 border-blue-200 dark:border-slate-700",
+          (typeof editor.rowSelection !== "number" && editor.rowSelection?.cursor === index) && "bg-blue-200 dark:bg-slate-700 border-y-2 border-blue-300 dark:border-slate-600",
           min === index && "outline-b-none",
           max === index && "outline-t-none",
           props.className
         )
       }
+      id={`row-${index}`}
     >
       <div className="flex justify-center items-center px-4">
         {statusIcon}
@@ -314,17 +385,36 @@ const MemoizedRowField = memo(RowField)
 
 export default Home;
 
+type Action = {
+  type: "delete",
+  noteIds: bigint[],
+  cardIds: bigint[]
+}
+
 
 type EditorStore = {
   rowHover: number | null,
   rowSelection: null | number | { anchor: number, cursor: number },
+  getSelectionRange: () => [number, number],
+  getSelectedNotes: <T extends { id: bigint }>(notes: T[]) => T[];
+
   fieldSelection: null | number,
   isEditing: boolean,
   setRowHover: (row: number | null) => void,
   setRowSelection: (row: number | { anchor: number, cursor: number } | null) => void,
   setFieldSelection: (field: number | null) => void,
   keyboardHandler: KeyboardEventHandler,
-  selectionRange: () => [number, number]
+
+  // An event-based system makes managing history (& undos) easier
+  on: <T extends Action>(action: T['type'], doHandler: () => T | Promise<T>, undoHandler: (action: T) => void) => void;
+  off: <T extends Action>(action: T['type']) => void;
+  doHandlers: { 'delete'?: () => Action };
+  undoHandlers: { 'delete'?: (action: Action) => void };
+
+  fire: (action: Action['type']) => void;
+  undo: () => void;
+  actions: Action[];
+
 }
 
 
@@ -334,7 +424,7 @@ const useEditor = create<EditorStore>((set, get) => ({
   fieldSelection: null,
   isEditing: false,
 
-  selectionRange: () => {
+  getSelectionRange: () => {
     const rowSelection = get().rowSelection
 
     if (rowSelection === null) {
@@ -343,6 +433,12 @@ const useEditor = create<EditorStore>((set, get) => ({
       return [rowSelection, rowSelection]
     }
     return [Math.min(rowSelection.anchor, rowSelection.cursor), Math.max(rowSelection.anchor, rowSelection.cursor)]
+  },
+
+  getSelectedNotes: <T extends { id: bigint }>(notes: T[]) => {
+    const selectionRange = get().getSelectionRange();
+    const indexes = range(selectionRange[0], selectionRange[1] + 1)
+    return indexes.map(i => notes[i]).filter(Boolean) as T[]
   },
 
   setRowHover(row) {
@@ -378,6 +474,7 @@ const useEditor = create<EditorStore>((set, get) => ({
         } else if (typeof rowSelection === "number") {
           set({ rowSelection: rowSelection + dY })
         }
+        document.getElementById(`row-${rowSelection}`)?.scrollIntoView({ behavior: "smooth", block: "center" })
       }
 
       const moveField = (dX: number) => {
@@ -394,7 +491,13 @@ const useEditor = create<EditorStore>((set, get) => ({
         }
       }
 
-      if (e.code === "ArrowDown") {
+      if (e.metaKey) {
+        if ((e.code === "Delete" || e.code === "Backspace")) {
+          get().fire("delete")
+        } else if (e.code === "Z") {
+          get().undo()
+        }
+      } else if (e.code === "ArrowDown") {
         moveRow(1)
       } else if (e.code === "ArrowUp") {
         moveRow(-1)
@@ -415,5 +518,37 @@ const useEditor = create<EditorStore>((set, get) => ({
       e.stopPropagation()
     }
   },
+
+  // Only one handler per event
+  on(action, handler, undo) {
+    set({
+      doHandlers: { ...get().doHandlers, [action]: handler },
+      undoHandlers: { ...get().undoHandlers, [action]: undo }
+    })
+  },
+  off(action) {
+    set({
+      doHandlers: { ...get().doHandlers, [action]: undefined },
+      undoHandlers: { ...get().undoHandlers, [action]: undefined }
+    })
+  },
+  doHandlers: {},
+  undoHandlers: {},
+
+  async fire(actionType) {
+    const action = await get().doHandlers?.[actionType]?.();
+
+    if (action) {
+      set({ actions: [...get().actions, action] })
+    }
+  },
+  async undo() {
+    const action = get().actions.pop()
+
+    if (action) {
+      get().undoHandlers[action.type]?.(action)
+    }
+  },
+  actions: []
 
 }))

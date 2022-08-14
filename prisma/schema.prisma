@@ -13,7 +13,7 @@ model Card {
   id BigInt @id @default(autoincrement())
 
   nid  BigInt
-  note Note   @relation(fields: [nid], references: [id])
+  note Note   @relation(fields: [nid], references: [id], onDelete: Cascade)
 
   did  BigInt
   deck Deck   @relation(fields: [did], references: [id])
@@ -154,14 +154,15 @@ model Field {
 
 /// For deleted cards, notes, decks that need to be synced
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
-model graves {
+model Grave {
   usn Int /// Should be -1
-  oid BigInt
+  oid BigInt @id
 
   /// 0=card, 1=note, 2=deck
   type Int
+  // @@ignore
 
-  @@ignore
+  @@map("graves")
 }
 
 model Note {

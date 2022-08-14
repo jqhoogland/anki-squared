@@ -93,3 +93,21 @@ export const removePaginatedItem = <T extends { id: bigint }, S = number | undef
             pages: [],
             pageParams: [],
         };
+
+
+export const removePaginatedItems = <T extends { id: bigint }, S = number | undefined | null>(
+    data: InfiniteData<{ items: T[]; nextCursor: S }> | null,
+    ids: bigint[],
+) =>
+    data
+        ? {
+            ...data,
+            pages: data?.pages.map((page) => ({
+                ...page,
+                items: page.items.filter((item) => !ids.includes(item.id)),
+            })),
+        }
+        : {
+            pages: [],
+            pageParams: [],
+        };
