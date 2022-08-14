@@ -15,6 +15,15 @@ const getGraveIds = async () => {
     return graveIds as bigint[]
 }
 
+// Faster during testing 
+let notes: null | {
+    items: (Note & {
+        fields: string[];
+        tags: string[];
+        status: "queue" | "ready";
+    })[], nextCursor: number | null
+} = null
+
 const notesRouter = t.router({
     paginate: t.procedure.input(z.object({
         limit: z.number().min(1).max(100).default(25),
@@ -22,6 +31,9 @@ const notesRouter = t.router({
         did: z.number().transform(BigInt).or(z.array(z.number()).transform(ns => ns.map(BigInt))).nullish(),
         status: z.enum(['queue', "ready"]).optional()
     })).query(async ({ input, ctx }) => {
+        if (notes) {
+            return notes
+        }
         let cardFindArgs: true | Prisma.CardListRelationFilter = { some: {} };
 
         if (typeof input.did === 'bigint') {
@@ -71,6 +83,13 @@ const notesRouter = t.router({
         if (items.length === input.limit) {
             nextCursor = input.cursor + input.limit;
         }
+
+        notes = {
+            items,
+            nextCursor
+        }
+
+
 
         return {
             items,
@@ -153,6 +172,22 @@ const notesRouter = t.router({
         console.log(chalk.green('notes.undelete DELETE CARD/NOTE GRAVE'), ungraved.count)
 
         return ungraved;
+    }),
+    update: t.procedure.input(z.object({ id: z.bigint(), fields: z.array(z.string()) })).mutation(async ({ input, ctx }) => {
+        const note = await ctx.prisma?.note.findUnique({ where: { id: input.id } });
+
+        if (!note) {
+            throw new TRPCError({ code: 'NOT_FOUND', message: 'Note not found' });
+        }
+
+        console.log(chalk.green('notes.update UPDATE NOTE'), note.id)
+
+        // TODO: Update csum
+        const updated = await ctx.prisma.note.update({
+            where: { id: note.id },
+            data: { fields: input.fields.join(String.fromCharCode(31)), usn: -1, updatedAt: Math.round(new Date().getTime() / 1000) },
+        })
+        return updated;
     })
 
 })

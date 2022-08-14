@@ -1,26 +1,27 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import React, { FocusEventHandler, HTMLProps, KeyboardEventHandler, memo, UIEvent, UIEventHandler, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FocusEventHandler, HTMLProps, KeyboardEventHandler, memo, UIEvent, UIEventHandler, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { trpc } from "../utils/trpc";
 import { Field, Note } from '@prisma/client';
 import { NoteType } from '@prisma/client';
 import { getParsedType } from "zod";
 import { ParsedNote, ParsedNoteType } from "../server/router/notes";
-import { DeckWithChildren } from "../server/router/decks";
-import { HiCheck, HiChevronDown, HiClock } from "react-icons/hi";
+import { HiCheck, HiClock } from "react-icons/hi";
 import { ImSpinner } from "react-icons/im";
 import clsx from "clsx";
-import { useAutoAnimate } from '@formkit/auto-animate/react'
-import { useRouter } from "next/router";
 import { updatePaginatedItem, removePaginatedItems } from '../utils/pagination';
 import create from "zustand";
 import shallow from "zustand/shallow";
 import { useVirtual } from "@tanstack/react-virtual"
 import useEvent from "react-use/lib/useEvent";
 import range from "lodash-es/range"
-import { UseInfiniteQueryOptions } from "react-query";
+import { UseInfiniteQueryOptions, UseQueryOptions } from "react-query";
 import chalk from 'chalk';
 import * as Portal from "@radix-ui/react-portal";
+import * as Dialog from "@radix-ui/react-dialog";
+import { useFilterParams, Layout, Filters } from "../components/layouts";
+import { useKeyPress, useKeyPressEvent } from "react-use";
+import { useForm } from "react-hook-form";
 
 const useNotes = (props?: UseInfiniteQueryOptions) => {
   const queryParams = useFilterParams();
@@ -34,13 +35,19 @@ const useNotes = (props?: UseInfiniteQueryOptions) => {
   return { notes, isLoading, fetchNextPage, queryParams }
 }
 
-const Home: NextPage = () => {
-  const { notes, isLoading, fetchNextPage } = useNotes();
-  const { data: noteTypes } = trpc.proxy.notes.types.useQuery();
+const useNoteTypes = (props: UseQueryOptions = {}) => {
+  const { data: noteTypes } = trpc.proxy.notes.types.useQuery(props as any);
 
   const getNoteType = useCallback((ntid: bigint) => {
     return noteTypes?.find(nt => nt.id === ntid)
   }, [noteTypes])
+
+  return { noteTypes, getNoteType }
+}
+
+const Home: NextPage = () => {
+  const { notes, isLoading, fetchNextPage } = useNotes();
+  const { getNoteType } = useNoteTypes();
 
   const logScroll = useEditor(store => store.logScroll)
 
@@ -82,7 +89,7 @@ const Home: NextPage = () => {
             className="h-[calc(100vh-4rem)] overflow-auto w-[max-content] min-w-[calc(100vw-13rem)]"
           >
             <div
-              className="flex flex-col divide-y w-[max-content] relative min-w-[calc(100vw-13rem)] overflow-x-auto items-stretch"
+              className="flex flex-col divide-y w-[max-content] relative min-w-[calc(100vw-13rem)] overflow-x-auto items-stretch overflow-y-hidden"
               style={{ height: `${rowVirtualizer.totalSize}px`, position: "relative" }}
             >
               {rowVirtualizer.virtualItems.map((virtualItem) => (
@@ -109,9 +116,88 @@ const Home: NextPage = () => {
         </main>
       </Layout>
       <ActionBar />
+      <NoteEditor />
     </>
   );
 };
+
+const NoteEditor = () => {
+  const [isEditing, toggleIsEditing, rowSelection] = useEditor(store => [store.isEditing, store.toggleIsEditing, store.rowSelection], shallow)
+
+  return (
+    <Dialog.Root open={isEditing && rowSelection != null}>
+      <Dialog.Overlay className="modal modal-open fixed top-0 left-0" onClick={() => toggleIsEditing(false)}>
+        <Dialog.Content className="modal-box" onClick={(e) => e.stopPropagation()}>
+          <NoteEditorForm />
+        </Dialog.Content>
+      </Dialog.Overlay>
+    </Dialog.Root>
+  )
+}
+
+const NoteEditorForm = () => {
+  const { notes, queryParams } = useNotes({ refetchOnMount: false });
+  const { getNoteType } = useNoteTypes({ refetchOnMount: false });
+  const [rowSelection, fieldSelection] = useEditor(store => [store.rowSelection, store.fieldSelection], shallow)
+
+  // TODO: Optimistic update
+  const { mutate: update } = trpc.proxy.notes.update.useMutation();
+
+  const note = useMemo(() => {
+    const note = typeof rowSelection == "number" && notes?.[rowSelection];
+    if (!note) {
+      return null;
+    }
+    const type = getNoteType(note.ntid);
+
+    return {
+      ...note,
+      type,
+    }
+  }, [notes, rowSelection, getNoteType])
+
+  const onSubmit = useCallback((_fields: { [key: `${number}`]: string }) => {
+    if (note?.id) {
+      const fields: string[] = new Array(Object.keys(_fields).length);
+
+      for (const [key, value] of Object.entries(_fields)) {
+        fields[parseInt(key)] = value;
+      }
+
+      update({ id: note.id, fields })
+    }
+  }, [note, update])
+
+  const { register, handleSubmit } = useForm({
+    // @ts-ignore
+    defaultValues: Array.isArray(note?.fields) ? { ...note?.fields } : undefined
+  })
+
+  const handleKeyDown = useCallback<KeyboardEventHandler>((e) => {
+    if (e.metaKey && e.code === "Enter") {
+      handleSubmit(onSubmit)()
+    }
+  }, [handleSubmit, onSubmit])
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} onKeyDown={handleKeyDown}>
+      <h1 className="text-xl font-bold">{note?.type?.name}</h1>
+      {
+        note?.type?.fields.map((field, i) => (
+          <div key={field.name} className="field-set flex flex-col gap-2">
+            <label className="label label-text">{field.name}</label>
+            <textarea className="textarea textarea-bordered"
+              autoFocus={(fieldSelection === i) || !(fieldSelection || i)}
+              rows={5}
+              onFocus={moveCaretToEnd}
+              {...register(`${i}`)}
+            />
+          </div>
+        ))
+      }
+    </form>
+  )
+}
 
 // This is messier than it has to be because of the synching between react-query's useQuery & zustand's store.
 // React-query gives us the mutation to perform a deletion & undo it server-side,
@@ -186,103 +272,6 @@ const ActionBar = () => {
 }
 
 
-const Filters = () => {
-  const router = useRouter();
-  const status = useFilterParams().status;
-  const toggleStatus = useCallback(() => {
-    router.query.status = status === 'queue' ? undefined : status === 'ready' ? 'queue' : 'ready'
-    router.push(router)
-  }, [router, status]);
-
-  return (
-    // TODO: Dropdown menu
-    <button className="btn btn-sm btn-outline" onClick={toggleStatus}>{status ?? "No Filters"}</button>
-  )
-}
-
-const Layout: React.FC<HTMLProps<HTMLDivElement>> = ({ children, ...props }) => {
-  const { data: decks } = trpc.proxy.decks.hierarchy.useQuery();
-
-  return (
-    <div className="flex h-screen overflow-hidden">
-      <aside className="bg-base-300 w-52">
-        <header className="px-4 pt-4 pb-2 border-b">
-          <h1 className="text-3xl leading-normal font-extrabold ">
-            Anki<sup className="text-sky-500">2</sup>
-          </h1>
-        </header>
-        <nav className="p-4">
-          <h2 className="opacity-50 font-bold pb-2">Decks</h2>
-          <ul className="flex flex-col gap-2 overflow-x-hidden">
-            {decks?.map(deck => (
-              <DeckLI deck={deck} key={deck.id.toString()} />
-            ))}
-          </ul>
-        </nav>
-      </aside>
-      <div className="col-span-5 overflow-hidden" {...props}>
-        {children}
-      </div>
-    </div>
-  )
-}
-
-const DeckLI: React.FC<{ deck: DeckWithChildren }> = ({ deck }) => {
-  const router = useRouter();
-  const [isOpen, setIsOpen] = useState(false);
-
-  const select = () => {
-    router.query.did = deck.id.toString();
-    router.push(router)
-  }
-  const toggle = () => {
-    select()
-    setIsOpen(o => !o);
-  }
-  const [ref] = useAutoAnimate<HTMLLIElement>();
-
-
-  if ("children" in deck && deck.children && deck.children.length > 0) {
-    return (
-      <li className="text-sm w-full" ref={ref}>
-        <button onClick={toggle} className="cursor-pointer hover:bg-base-200 flex gap-1 items-center px-2 truncate rounded-lg">
-          <HiChevronDown className={clsx("text-sm transition duration-300", !isOpen && "rotate-180")} />{deck.name}
-        </button>
-        {isOpen &&
-          <ul className={"pl-8"}>
-            {deck.children.map(subdeck => <DeckLI deck={subdeck} key={subdeck.id.toString()} />)}
-          </ul>
-        }
-      </li>
-    )
-  }
-
-  return (
-    <li className="text-sm gap-1 flex ">
-      <button onClick={select} className="cursor-pointer hover:bg-base-200 flex gap-1 items-center px-2 truncate rounded-lg">
-        {deck.name}
-      </button>
-    </li>
-  )
-}
-
-const useFilterParams = () => {
-  const router = useRouter();
-  const queryParams: { did?: number | number[], status?: "queue" | "ready" } = {};
-
-  if (router.query.status === "queue" || router.query.status === "ready") {
-    queryParams.status = router.query.status as "queue" | "ready";
-  }
-
-  if (typeof router.query.did === "string") {
-    queryParams.did = parseInt(router.query.did);
-  } else if (Array.isArray(router.query.did)) {
-    queryParams.did = router.query.did.map(parseInt);
-  }
-
-  return queryParams
-}
-
 const useToggleStatus = (id: bigint, status: "queue" | "ready") => {
   const queryParams = useFilterParams();
   const utils = trpc.useContext()
@@ -331,6 +320,7 @@ const NoteRow = ({ note, type, index, ...props }: NoteRowProps) => {
     <div
       onMouseOver={() => editor.setRowHover(index)}
       {...props}
+      onClick={() => editor.toggleIsEditing()}
       className={
         clsx(
           "flex flex-row divide-x-2 w-full",
@@ -343,7 +333,7 @@ const NoteRow = ({ note, type, index, ...props }: NoteRowProps) => {
           props.className
         )
       }
-      id={`row-${index}`}
+      id={`row - ${index} `}
     >
       <div className="flex justify-center items-center px-4">
         {statusIcon}
@@ -361,7 +351,8 @@ const NoteRow = ({ note, type, index, ...props }: NoteRowProps) => {
 const RowField = ({ label, field, row, col }: { label: string | undefined, field: string, row: number, col: number }) => {
   const ref = useRef<HTMLDivElement | null>(null);
 
-  const [isEditing, fieldSelection, setFieldSelection] = useEditor(store => [store.isEditing, store.fieldSelection, store.setFieldSelection], shallow);
+  const [isEditing, rowSelection, fieldSelection, setFieldSelection] =
+    useEditor(store => [store.isEditing, store.rowSelection, store.fieldSelection, store.setFieldSelection], shallow);
   const [_, isScrolling, logScroll] = useEditor(store => [store.lastScrollTime, store.isScrolling(), store.logScroll], shallow);
   const select = useCallback(() => setFieldSelection(col), [col, setFieldSelection]);
 
@@ -376,13 +367,11 @@ const RowField = ({ label, field, row, col }: { label: string | undefined, field
 
   const contents = useMemo(() => {
     const contents = (
-      <div className={clsx("w-full h-[max-content]")}>
+      <div className={clsx("w-full h-[max-content]")}
+        onClick={select}
+      >
         <label className="w-full text-xs opacity-50 pt-2">{label}</label>
-        {
-          (isEditing && fieldSelection === col) ?
-            <textarea defaultValue={field} autoFocus className="h-full" onFocus={moveCaretToEnd} />
-            : <div dangerouslySetInnerHTML={{ __html: field }} className="prose" />
-        }
+        <div dangerouslySetInnerHTML={{ __html: field }} className="prose" />
       </div>
     )
 
@@ -403,14 +392,13 @@ const RowField = ({ label, field, row, col }: { label: string | undefined, field
     }
 
     return contents;
-  }, [isHovering, label, fieldSelection, col, field, isEditing,])
+  }, [isHovering, label, fieldSelection, col, field, isEditing, logScroll])
 
   return (
     <div
       className={
         "flex flex-1 flex-col min-w-[150px] overflow-hidden px-2"
       }
-      // onClick={select}
       ref={ref}
       onMouseOver={handleMouseOver}
       onMouseOut={handleMouseOut}
@@ -450,6 +438,8 @@ type EditorStore = {
 
   fieldSelection: null | number;
   isEditing: boolean;
+  toggleIsEditing: (optional?: boolean) => void;
+
   setRowHover: (row: number | null) => void;
   setRowSelection: (row: number | { anchor: number, cursor: number } | null) => void;
   setFieldSelection: (field: number | null) => void;
@@ -477,6 +467,12 @@ const useEditor = create<EditorStore>((set, get) => ({
   rowSelection: null,
   fieldSelection: null,
   isEditing: false,
+  toggleIsEditing: (optional) => {
+    set({
+      isEditing: optional !== undefined ? optional : !get().isEditing,
+      rowSelection: get().rowSelection ?? get().rowHover
+    })
+  },
 
   getSelectionRange: () => {
     const rowSelection = get().rowSelection
@@ -505,16 +501,21 @@ const useEditor = create<EditorStore>((set, get) => ({
     set({ fieldSelection: field })
   },
 
+
   keyboardHandler: (e) => {
-    console.log({ e })
+    console.log({ e, editor: get() })
     if (typeof document !== "undefined") {
       const { rowSelection, rowHover, fieldSelection, isEditing, setRowSelection, setFieldSelection } = get();
       if (rowHover != null && rowSelection === null) {
         set({ rowSelection: rowHover })
         return;
       }
+
+      if (isEditing) {
+        return
+      }
+
       const moveRow = (dY: number) => {
-        console.log({ r: rowSelection, dY, shift: e.shiftKey })
         if (e.shiftKey) {
           if (rowSelection == null) {
             set({ rowSelection: { anchor: 0, cursor: 0 } })
@@ -528,7 +529,7 @@ const useEditor = create<EditorStore>((set, get) => ({
         } else if (typeof rowSelection === "number") {
           set({ rowSelection: rowSelection + dY })
         }
-        document.getElementById(`row-${rowSelection}`)?.scrollIntoView({ behavior: "smooth", block: "center" })
+        // document.getElementById(`row - ${ rowSelection } `)?.scrollIntoView({ behavior: "smooth", block: "center" })
       }
 
       const moveField = (dX: number) => {
@@ -563,7 +564,7 @@ const useEditor = create<EditorStore>((set, get) => ({
         escape()
       } else if (focus === null && ["1", "2", "3", "4", "5", "6", "7", "8", "9"].includes(e.key)) {
         setFieldSelection(parseInt(e.key))
-      } else if (!isEditing && !["Tab", "ShiftLeft", "ShiftRight", "MetaRight", "MetaLeft", "ControlLeft", "ControlRight", "AltLeft", "AltRight"].includes(e.code)) {
+      } else if (!isEditing && !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey) {
         set({ isEditing: true })
       } else {
         return

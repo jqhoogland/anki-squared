@@ -12,3 +12,14 @@
 .scrollbar-x-hidden::-webkit-scrollbar {
     display: none;
 }
+
+
+.scrollbar-y-hidden { 
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+    scrollbar-width: none;
+    padding-right: 0
+}
+
+.scrollbar-y-hidden::-webkit-scrollbar {
+    display: none;
+}
