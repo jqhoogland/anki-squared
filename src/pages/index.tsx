@@ -362,16 +362,16 @@ const RowField = ({ label, field, row, col }: { label: string | undefined, field
   const ref = useRef<HTMLDivElement | null>(null);
 
   const [isEditing, fieldSelection, setFieldSelection] = useEditor(store => [store.isEditing, store.fieldSelection, store.setFieldSelection], shallow);
-  const [_, isScrolling] = useEditor(store => [store.lastScrollTime, store.isScrolling()], shallow);
+  const [_, isScrolling, logScroll] = useEditor(store => [store.lastScrollTime, store.isScrolling(), store.logScroll], shallow);
   const select = useCallback(() => setFieldSelection(col), [col, setFieldSelection]);
 
   const [_isHovering, setIsHovering] = useState(false);
   const handleMouseOver = useCallback(() => setIsHovering(true), [setIsHovering]);
   const handleMouseOut = useCallback(() => setIsHovering(false), [setIsHovering]);
 
-  const isHovering = _isHovering
+  const isHovering = (_isHovering
     && (ref.current?.children?.[0]?.clientHeight ?? 0) > 100
-    && !isScrolling;
+    && !isScrolling);
 
 
   const contents = useMemo(() => {
@@ -381,7 +381,7 @@ const RowField = ({ label, field, row, col }: { label: string | undefined, field
         {
           (isEditing && fieldSelection === col) ?
             <textarea defaultValue={field} autoFocus className="h-full" onFocus={moveCaretToEnd} />
-            : <div dangerouslySetInnerHTML={{ __html: field }} />
+            : <div dangerouslySetInnerHTML={{ __html: field }} className="prose" />
         }
       </div>
     )
@@ -392,9 +392,10 @@ const RowField = ({ label, field, row, col }: { label: string | undefined, field
       return (
         <Portal.Root
           className={
-            "fixed bg-base-200 px-2 border-l-2 border-b-2  border-base-300 pointer-events-none"
+            "fixed bg-base-200 px-2 border-l-2 border-b-2 border-base-300"
           }
           style={{ top, left, width, minHeight: 100 }}
+          onWheel={logScroll}
         >
           {contents}
         </Portal.Root>
