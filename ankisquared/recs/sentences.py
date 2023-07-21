@@ -1,28 +1,32 @@
-import openai
+from pprint import pp
+
+import requests
 from aqt import mw
 
 
-def get_sentences(query: str) -> str:
-    # Load the configuration values from the add-on manager
+def get_sentence(query: str) -> str:
     config = mw.addonManager.getConfig("ankisquared")
+    model = config['model']
     openai_api_key = config['openai_api_key']
-    model = config['model']  # Model name, like "davinci", "curie", etc.
-
-    # Set up OpenAI API key
-    openai.api_key = openai_api_key
-
-    # Use the OpenAI library to call the desired model and get a completion
-    try:
-        response = openai.Completion.create(
-            engine=model,
-            prompt=f"Write an example sentence using the word {query}.",
-            max_tokens=50
-        )
-        choices = response.choices
+    language = config['language']
+    difficulty = config['difficulty']
+    
+    headers = {
+        "Authorization": f"Bearer {openai_api_key}",
+        "Content-Type": "application/json"
+    }
+    
+    data = {
+        "prompt": f"Write an example sentence using the word {query} (language: {language}, difficulty: {difficulty}).",
+        "max_tokens": 50
+    }
+    pp(data)
+    response = requests.post(f"https://api.openai.com/v2/engines/{model}/completions", headers=headers, json=data)
+    pp(response)
+    pp(response.json())
+    
+    if response.status_code == 200:
+        choices = response.json().get("choices", [])
         if choices:
-            return choices[0].text.strip()
-    except Exception as e:
-        print(f"Error with OpenAI API: {e}")
-        return ""
-
+            return choices[0].get("text", "").strip()
     return ""

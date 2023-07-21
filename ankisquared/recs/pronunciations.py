@@ -19,4 +19,5 @@ def get_pronunciations(query: str) -> list:
     if response.status_code == 200:
         data = response.json()
         return [item["pathmp3"] for item in data["items"]]
+    
     return []
