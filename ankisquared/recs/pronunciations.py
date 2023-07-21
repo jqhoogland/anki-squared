@@ -1,5 +1,6 @@
 import requests
 from aqt import mw
+from aqt.utils import showWarning
 
 
 def get_pronunciations(query: str) -> list:
@@ -19,5 +20,8 @@ def get_pronunciations(query: str) -> list:
     if response.status_code == 200:
         data = response.json()
         return [item["pathmp3"] for item in data["items"]]
+    else:
+        showWarning("Forvo API request failed!")
+        print(response.text)
     
     return []
