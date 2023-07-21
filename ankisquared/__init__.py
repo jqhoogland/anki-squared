@@ -1,3 +1,5 @@
+import html
+
 import anki
 from anki.notes import Note
 from aqt import gui_hooks, mw
@@ -13,23 +15,42 @@ def get_icon_path(icon_name: str, active: bool) -> str:
     variant = "on" if active else "off"
     return str(ICONS_PATH/variant/icon_name)
 
+def get_word(editor: Editor) -> str:
+    return editor.note.fields[0]
+
+def is_valid_field(editor: Editor) -> bool:
+    if editor.currentField is not None and editor.currentField != 0:
+        return True
+    else:
+        showWarning("Please focus on a field first!")
+        return False
 
 def gen_images(editor: Editor):
     pass
 
 
 def gen_pronunciations(editor: Editor):
-    pass
+    word = get_word(editor)
+    
+    if is_valid_field(editor) and word:
+        urls = pronunciations.get_pronunciations(word)
+
+        if urls:
+            url = urls[0]
+            fname = editor._retrieveURL(url)
+            link = f"[sound:{html.escape(fname, quote=False)}]"
+            editor.note.fields[editor.currentField] = link
+            editor.loadNote()
+        else:
+            showWarning("No pronunciations found!")
 
 
 def gen_sentences(editor: Editor):
-    word = editor.note.fields[0]
+    word = get_word(editor)
 
-    if editor.currentField is not None and editor.currentField != 0:
+    if is_valid_field(editor) and word:
         editor.note.fields[editor.currentField] = sentences.get_sentence(word) 
         editor.loadNote()
-    else:
-        showWarning("Please focus on a field first!")
         
 
 def did_load_editor(buttons: list, editor: Editor):
