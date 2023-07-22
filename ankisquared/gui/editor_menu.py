@@ -33,51 +33,37 @@ def is_valid_field(editor: Editor) -> bool:
         return False
 
 
-def gen_images(editor: Editor):
-    language = getattr(editor, "language", "en")    
-    word = get_word(editor)
+def add_images(editor: Editor, urls: list[str]):
+    if urls:
+        urls = urls[:max(NUM_IMAGES, len(urls))]
+        links = []
 
-    if is_valid_field(editor) and word:
-        urls = images.get_images(word, editor.config)
+        for url in urls:
+            fname = editor._retrieveURL(url)    
+            links.append(f"<img src=\"{html.escape(fname, quote=False)}\" />")
 
-        if urls:
-            urls = urls[:max(NUM_IMAGES, len(urls))]
-            links = []
-
-            for url in urls:
-                fname = editor._retrieveURL(url)    
-                links.append(f"<img src=\"{html.escape(fname, quote=False)}\" />")
-
-            editor.note.fields[editor.currentField] = "<br />".join(links)
-            editor.loadNote()
-        else:
-            showWarning("No images found!")        
-
-
-def gen_pronunciations(editor: Editor):
-    language = getattr(editor, "language", "en")
-    word = get_word(editor)
-    
-    if is_valid_field(editor) and word:
-        urls = pronunciations.get_pronunciations(word, editor.config)
-
-        if urls:
-            url = urls[0]
-            fname = editor._retrieveURL(url)
-            link = f"[sound:{html.escape(fname, quote=False)}]"
-            editor.note.fields[editor.currentField] = link
-            editor.loadNote()
-        else:
-            showWarning("No pronunciations found!")
-
-
-def gen_sentences(editor: Editor):
-    word = get_word(editor)
-
-    if is_valid_field(editor) and word:
-        editor.note.fields[editor.currentField] = sentences.get_sentence(word, editor.config) 
+        editor.note.fields[editor.currentField] = "<br />".join(links)
         editor.loadNote()
-        
+    else:
+        showWarning("No images found!")        
+
+
+def add_pronunciation(editor: Editor, url: str):
+    if url:
+        fname = editor._retrieveURL(url)
+        link = f"[sound:{html.escape(fname, quote=False)}]"
+        editor.note.fields[editor.currentField] = link
+        editor.loadNote()
+    else:
+        showWarning("No pronunciations found!")
+
+
+def add_sentences(editor: Editor, sentence: str):
+    if sentence:
+        editor.note.fields[editor.currentField] = sentence
+        editor.loadNote()
+    else:
+        showWarning("No sentences found!")
 
 
 
@@ -115,3 +101,58 @@ def did_load_editor(buttons: list, editor: Editor):
     
     buttons.append(suggestions_settings_btn)
 
+
+def did_load_editor(buttons: list, editor: Editor): 
+    editor.config = Config.from_conf()
+
+    def unified_action(editor: Editor, action_config):
+        # Extract action details from the action_config
+        endpoint = action_config.endpoint
+        prompt_raw = action_config.prompt
+
+        field_names = [field['name'] for field in editor.note.model()['flds']]
+        field_values = editor.note.fields
+        fields_dict = dict(zip(field_names, field_values))
+
+        query = prompt_raw.format(*field_values, **fields_dict)
+
+        if is_valid_field(editor) and query:
+            if endpoint == "Bing":
+                results = images.get_images(query, editor.config, action_config)
+                add_images(editor, results)
+            elif endpoint == "Forvo":
+                results = pronunciations.get_pronunciations(query, editor.config, action_config)
+                result = results[0] if results else None
+                add_pronunciation(editor, result)
+            elif endpoint == "OpenAI":
+                # Assuming you have a function to handle this
+                results = sentences.get_sentence(query, editor.config, action_config) 
+                add_sentences(editor, results)
+            else:
+                showWarning(f"Unknown endpoint: {endpoint}")
+                return
+
+    def add_button(button_config, editor):
+        return editor.addButton(
+            icon=get_icon_path(button_config.icon),
+            cmd=button_config.cmd,
+            func=lambda s=editor: unified_action(s, button_config.action),
+            tip=button_config.tip,
+            keys=button_config.keys,
+            id=f"{button_config.name}_button" 
+        )
+
+    for btn_config in editor.config.buttons:
+        btn = add_button(btn_config, editor)
+        buttons.append(btn)
+
+    # Settings...
+    suggestions_settings_btn = editor.addButton(
+        icon=get_icon_path("settings.png"),
+        cmd="openSettings",
+        func=lambda s=editor: generate_config_dialog(s.config),
+        tip="Open suggestion settings",
+        keys="Ctrl+Shift+S",
+        id="suggestions_dropdown_button"
+    )
+    buttons.append(suggestions_settings_btn)
