@@ -10,9 +10,10 @@ from aqt.editor import Editor
 from aqt.qt import *
 from aqt.utils import showWarning
 
+from ankisquared.config import Config
 from ankisquared.consts import ICONS_PATH
+from ankisquared.gui.config_dialog import generate_config_dialog
 from ankisquared.recs import images, pronunciations, sentences
-from ankisquared.settings import show_settings_dialog
 
 NUM_IMAGES = 3
 
@@ -37,7 +38,7 @@ def gen_images(editor: Editor):
     word = get_word(editor)
 
     if is_valid_field(editor) and word:
-        urls = images.get_images(word, NUM_IMAGES, language=language)
+        urls = images.get_images(word, editor.config)
 
         if urls:
             urls = urls[:max(NUM_IMAGES, len(urls))]
@@ -58,7 +59,7 @@ def gen_pronunciations(editor: Editor):
     word = get_word(editor)
     
     if is_valid_field(editor) and word:
-        urls = pronunciations.get_pronunciations(word, language=language)
+        urls = pronunciations.get_pronunciations(word, editor.config)
 
         if urls:
             url = urls[0]
@@ -74,23 +75,14 @@ def gen_sentences(editor: Editor):
     word = get_word(editor)
 
     if is_valid_field(editor) and word:
-        editor.note.fields[editor.currentField] = sentences.get_sentence(word) 
+        editor.note.fields[editor.currentField] = sentences.get_sentence(word, editor.config) 
         editor.loadNote()
         
 
 
 
 def did_load_editor(buttons: list, editor: Editor): 
-    def add_conf_to_editor(editor, *fields: str, **fields_with_defaults):
-        conf = mw.addonManager.getConfig("ankisquared")
-
-        for field in fields:
-            setattr(editor, field, conf.get(field, None))
-
-        for field, default in fields_with_defaults.items():
-            setattr(editor, field, conf.get(field, default))
-
-    add_conf_to_editor(editor, language="en", difficulty="A1")
+    editor.config = Config.from_conf()
 
     def add_button(name, icon, callback, cmd, tip, keys=None):
         return editor.addButton(
@@ -115,7 +107,7 @@ def did_load_editor(buttons: list, editor: Editor):
     suggestions_settings_btn = editor.addButton(
         icon=get_icon_path("settings.png"),  # Provide an appropriate icon if you have one
         cmd="openSettings",
-        func=lambda s=editor: show_settings_dialog(s),
+        func=lambda s=editor: generate_config_dialog(s.config),
         tip="Open suggestion settings",
         keys="Ctrl+Shift+S",
         id="suggestions_dropdown_button"

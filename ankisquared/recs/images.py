@@ -5,6 +5,8 @@ import requests
 from aqt import mw
 from aqt.utils import showWarning
 
+from ankisquared.config import Config
+
 # No need for the DuckDuckGo-related constants, removing them
 
 class BingSearch:
@@ -71,14 +73,12 @@ class BingSearch:
             sleep(5)
 
 
-def get_images(keywords: str, num_images: int, language="en") -> list:
-    conf = mw.addonManager.getConfig("ankisquared")
-    bing_api_key = conf['bing_api_key']
+def get_images(keywords: str, config: Config) -> list:
 
     with BingSearch() as bing:
         return [r["thumbnail"] for r in bing.images(
             query=keywords,
-            subscription_key=bing_api_key,
-            mkt=language,
-            num_results=num_images
+            subscription_key=config.bing_api_key,
+            mkt=config.language,
+            num_results=config.num_images
         )]
