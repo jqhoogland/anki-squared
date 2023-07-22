@@ -27,7 +27,7 @@ class Config:
 
     @classmethod
     def from_conf(cls):
-        conf = mw.addonManager.getConfig("ankisquared")
+        conf = mw.addonManager.getConfig("ankisquared") or {}
         print("Loaded config:")
         pp(conf)
         return cls(
@@ -43,7 +43,7 @@ class Config:
         )
     
     def save_to_conf(self):
-        conf = mw.addonManager.getConfig("ankisquared")
+        conf = mw.addonManager.getConfig("ankisquared") or {}
         conf.update(asdict(self))
         mw.addonManager.writeConfig("ankisquared", conf)
 
