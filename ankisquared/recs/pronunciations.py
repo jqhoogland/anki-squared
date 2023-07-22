@@ -6,10 +6,9 @@ from aqt import mw
 from aqt.utils import showWarning
 
 
-def get_pronunciations(query: str) -> list:
+def get_pronunciations(query: str, language="en") -> list:
     config = mw.addonManager.getConfig("ankisquared")
     forvo_api_key = config['forvo_api_key']
-    language = config['language']
     
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"

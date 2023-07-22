@@ -70,15 +70,15 @@ class BingSearch:
             }
             sleep(5)
 
-def get_images(keywords: str, num_images: int) -> list:
+
+def get_images(keywords: str, num_images: int, language="en") -> list:
     conf = mw.addonManager.getConfig("ankisquared")
-    lang = conf['language']
     bing_api_key = conf['bing_api_key']
 
     with BingSearch() as bing:
         return [r["thumbnail"] for r in bing.images(
             query=keywords,
             subscription_key=bing_api_key,
-            mkt=lang,
+            mkt=language,
             num_results=num_images
         )]

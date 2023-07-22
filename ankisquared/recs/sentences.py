@@ -5,12 +5,12 @@ from aqt import mw
 from aqt.utils import showWarning
 
 
-def get_sentence(query: str) -> str:
+def get_sentence(query: str, language="en", difficulty="A1") -> str:
     config = mw.addonManager.getConfig("ankisquared")
-    model = config['model']
     openai_api_key = config['openai_api_key']
-    language = config['language']
-    difficulty = config['difficulty']
+    model = config['model']
+    max_tokens = config.get('max_tokens', 100)
+    temperature = config.get('temperature', 0.7)
     
     headers = {
         "Authorization": f"Bearer {openai_api_key}",
@@ -21,11 +21,12 @@ def get_sentence(query: str) -> str:
         "model": model,
         "messages": [
             {"role": "system", "content": f"You are a helpful language-teaching assistant (language: {language}, difficulty: {difficulty})."}, 
-            {"role": "user", "content": f"Could you write an example sentence using the word '{query}'? Respond with just the sentence."}
+            {"role": "user", "content": f"Could you write a few example sentences using the word '{query}'? Respond with just the sentence. No quotes. Separate with a newline."}
         ],
-        "max_tokens": 100,
-        "temperature": 0.7,
+        "max_tokens": max_tokens,
+        "temperature": temperature,
     }
+    pp(data["messages"])
     response = requests.post(f"https://api.openai.com/v1/chat/completions", headers=headers, json=data)
     
     if response.status_code == 200:
