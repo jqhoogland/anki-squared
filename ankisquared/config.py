@@ -13,8 +13,8 @@ class ButtonConfig:
     icon: str
     cmd: str
     tip: str
-    action_endpoint: str
-    action_prompt: str = "{0}" 
+    endpoint: Literal["Bing", "Forvo", "OpenAI"]
+    prompt: str = "{0}" 
     keys: Optional[str] = None
 
 @dataclass
@@ -80,8 +80,8 @@ images_button = ButtonConfig(
     icon="image-search.png",  # replace with appropriate icon filename
     cmd="genImages",
     tip="Suggest Images from Bing",
-    action_endpoint="Bing",
-    keys="Ctrl+Shift+1"
+    endpoint="Bing",
+    keys="Ctrl+1"
 )
 
 # 2. Generate pronunciations using Forvo
@@ -90,8 +90,8 @@ pronunciations_button = ButtonConfig(
     icon="forvo.png",  # replace with appropriate icon filename
     cmd="genPronunciations",
     tip="Suggest Pronunciations from Forvo",
-    action_endpoint="Forvo",
-    keys="Ctrl+Shift+2"
+    endpoint="Forvo",
+    keys="Ctrl+2"
 )
 
 # 3. Generate examples using OpenAI
@@ -100,9 +100,9 @@ examples_button = ButtonConfig(
     icon="example.png",  # replace with appropriate icon filename
     cmd="genSentences",
     tip="Suggest Sentences using OpenAI",
-    action_endpoint="OpenAI",
-    action_prompt="Provide several example sentences for the word `{0}` separated by newlines.",
-    keys="Ctrl+Shift+3"
+    endpoint="OpenAI",
+    prompt="Provide several example sentences for the word `{0}` separated by newlines.",
+    keys="Ctrl+3"
 )
 
 # 4. Generate a definition using OpenAI
@@ -111,9 +111,9 @@ definitions_button = ButtonConfig(
     icon="definition.png",  # replace with appropriate icon filename
     cmd="genDefinitions",
     tip="Suggest Definition using OpenAI",
-    action_endpoint="OpenAI",
-    action_prompt="Provide a definition for `{0}`.",
-    keys="Ctrl+Shift+4"
+    endpoint="OpenAI",
+    prompt="Provide a definition for `{0}`.",
+    keys="Ctrl+4"
 )
 
 # 5. Generate an IPA transcription using OpenAI
@@ -122,9 +122,9 @@ ipa_button = ButtonConfig(
     icon="ipa.png",  # replace with appropriate icon filename
     cmd="genIPA",
     tip="Generate IPA Transcription using OpenAI",
-    action_endpoint="OpenAI",
-    action_prompt="Provide the IPA for `{0}`.",
-    keys="Ctrl+Shift+5"
+    endpoint="OpenAI",
+    prompt="Provide the IPA for `{0}`.",
+    keys="Ctrl+5"
 )
 
 default_buttons = [images_button, pronunciations_button, examples_button, definitions_button, ipa_button]

@@ -73,12 +73,12 @@ class BingSearch:
             sleep(5)
 
 
-def get_images(keywords: str, config: Config) -> list:
+def get_images(keywords: str, bing_api_key: str, language: str, num_images: int, **_) -> list:
 
     with BingSearch() as bing:
         return [r["thumbnail"] for r in bing.images(
             query=keywords,
-            subscription_key=config.bing_api_key,
-            mkt=config.language,
-            num_results=config.num_images
+            subscription_key=bing_api_key,
+            mkt=language,
+            num_results=num_images
         )]

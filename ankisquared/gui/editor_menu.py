@@ -2,6 +2,7 @@
 import html
 import os
 import sys
+from dataclasses import asdict
 
 import anki
 from anki.notes import Note
@@ -115,18 +116,19 @@ def did_load_editor(buttons: list, editor: Editor):
         fields_dict = dict(zip(field_names, field_values))
 
         query = prompt_raw.format(*field_values, **fields_dict)
+        config = asdict(editor.config) | asdict(action_config)
 
         if is_valid_field(editor) and query:
             if endpoint == "Bing":
-                results = images.get_images(query, editor.config, action_config)
+                results = images.get_images(query, **config)
                 add_images(editor, results)
             elif endpoint == "Forvo":
-                results = pronunciations.get_pronunciations(query, editor.config, action_config)
+                results = pronunciations.get_pronunciations(query, **config)
                 result = results[0] if results else None
                 add_pronunciation(editor, result)
             elif endpoint == "OpenAI":
                 # Assuming you have a function to handle this
-                results = sentences.get_sentence(query, editor.config, action_config) 
+                results = sentences.get_sentence(query, **config) 
                 add_sentences(editor, results)
             else:
                 showWarning(f"Unknown endpoint: {endpoint}")
@@ -136,7 +138,7 @@ def did_load_editor(buttons: list, editor: Editor):
         return editor.addButton(
             icon=get_icon_path(button_config.icon),
             cmd=button_config.cmd,
-            func=lambda s=editor: unified_action(s, button_config.action),
+            func=lambda s=editor: unified_action(s, button_config),
             tip=button_config.tip,
             keys=button_config.keys,
             id=f"{button_config.name}_button" 
