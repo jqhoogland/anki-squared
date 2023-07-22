@@ -1,6 +1,6 @@
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from anki import version
 
@@ -13,4 +13,3 @@ else:
     ADDON_PATH = os.path.dirname(__file__).decode(SYS_ENCODING)
 
 ICONS_PATH = Path(os.path.join(ADDON_PATH, "icons"))
-

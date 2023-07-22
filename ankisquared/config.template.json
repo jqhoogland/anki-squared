@@ -1,6 +1,7 @@
 {
     "openai_api_key": "xxx",
     "forvo_api_key": "xxx",
+    "bing_api_key": "xxx",
     "language": "en",
     "model": "davinci",
     "difficulty": "A1"

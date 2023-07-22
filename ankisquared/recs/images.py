@@ -1,78 +1,84 @@
-import json
-import logging
-import re
-from typing import Dict
+from time import sleep
+from typing import Dict, Iterator, Optional
 
 import requests
+from aqt import mw
+from aqt.utils import showWarning
 
-logger = logging.getLogger(__name__)
+# No need for the DuckDuckGo-related constants, removing them
 
-def search(keywords: str, max_results=None) -> Dict:
-    url = 'https://duckduckgo.com/'
-    params = {
-    	'q': keywords
-    }
+class BingSearch:
+    """Bing Image Search class to get search results from Bing's API"""
 
-    logger.debug("Hitting DuckDuckGo for Token")
+    BING_API_ENDPOINT = "https://api.bing.microsoft.com/v7.0/images/search"
 
-    #   First make a request to above URL, and parse out the 'vqd'
-    #   This is a special token, which should be used in the subsequent request
-    res = requests.post(url, data=params)
-    searchObj = re.search(r'vqd=([\d-]+)\&', res.text, re.M|re.I)
+    def __init__(self, headers=None, proxies=None, timeout=10) -> None:
+        self._session = requests.Session()
+        if headers:
+            self._session.headers.update(headers)
+        if proxies:
+            self._session.proxies.update(proxies)
+        self._session.timeout = timeout
 
-    if not searchObj:
-        logger.error("Token Parsing Failed !")
-        return -1
+    def __enter__(self) -> "BingSearch":
+        return self
 
-    logger.debug("Obtained Token")
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self._session.close()
 
-    headers = {
-        'authority': 'duckduckgo.com',
-        'accept': 'application/json, text/javascript, */* q=0.01',
-        'sec-fetch-dest': 'empty',
-        'x-requested-with': 'XMLHttpRequest',
-        'user-agent': 'Mozilla/5.0 (Macintosh Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36',
-        'sec-fetch-site': 'same-origin',
-        'sec-fetch-mode': 'cors',
-        'referer': 'https://duckduckgo.com/',
-        'accept-language': 'en-US,enq=0.9',
-    }
+    def images(
+        self, 
+        query: str, 
+        subscription_key: str, 
+        mkt: str = 'en-US', 
+        num_results: int = 10
+    ) -> Iterator[Dict[str, Optional[str]]]:
+        """Bing Image Search with API.
 
-    params = (
-        ('l', 'us-en'),
-        ('o', 'json'),
-        ('q', keywords),
-        ('vqd', searchObj.group(1)),
-        ('f', ',,,'),
-        ('p', '1'),
-        ('v7exp', 'a'),
-    )
+        Args:
+            query: Keywords for search.
+            subscription_key: Bing API subscription key.
+            mkt: Market code (e.g. 'en-US'). Defaults to 'en-US'.
+            num_results: Maximum number of results. Defaults to 10.
 
-    requestUrl = url + "i.js"
+        Yields:
+            dict with image search results.
 
-    logger.debug("Hitting Url : %s", requestUrl)
+        """
+        headers = {
+            'Ocp-Apim-Subscription-Key': subscription_key
+        }
+        params = {
+            'q': query, 
+            'mkt': mkt,
+            'count': num_results
+        }
+        
+        response = self._session.get(self.BING_API_ENDPOINT, headers=headers, params=params)
+        
+        if response.status_code != 200:
+            showWarning("Bing API request failed!")
+            return
 
-    while True:
-        while True:
-            try:
-                res = requests.get(requestUrl, headers=headers, params=params)
-                data = json.loads(res.text)
-                break
-            except ValueError as e:
-                logger.debug("Hitting Url Failure - Sleep and Retry: %s", requestUrl)
-                time.sleep(5)
-                continue
+        search_results = response.json()
+        for img in search_results["value"]:
+            yield {
+                "title": img["name"],
+                "image": img["contentUrl"],
+                "thumbnail": img["thumbnailUrl"],
+                "url": img["hostPageUrl"],
+            }
+            sleep(5)
 
-        logger.debug("Hitting Url Success : %s", requestUrl)
+def get_images(keywords: str, num_images: int) -> list:
+    conf = mw.addonManager.getConfig("ankisquared")
+    lang = conf['language']
+    bing_api_key = conf['bing_api_key']
 
-        if "next" not in data:
-            logger.debug("No Next Page - Exiting")
-            return data
-
-        requestUrl = url + data["next"]
-
-
-
-def get_images(query: str) -> list:
-    results = search(query)
-    return [r["url"] for r in results["results"]]       
+    with BingSearch() as bing:
+        return [r["thumbnail"] for r in bing.images(
+            query=keywords,
+            subscription_key=bing_api_key,
+            mkt=lang,
+            num_results=num_images
+        )]
