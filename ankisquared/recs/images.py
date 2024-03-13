@@ -70,7 +70,6 @@ class BingSearch:
                 "thumbnail": img["thumbnailUrl"],
                 "url": img["hostPageUrl"],
             }
-            sleep(5)
 
 
 def get_images(keywords: str, bing_api_key: str, language: str, num_images: int, **_) -> list:
