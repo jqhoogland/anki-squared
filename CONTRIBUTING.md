@@ -75,6 +75,6 @@ showInfo("Debug message")
 ## Getting Help
 
 - Open an issue
-- Join our [Discord](https://discord.gg/TODO)
+<!-- - Join our [Discord](https://discord.gg/TODO) -->
 
 
