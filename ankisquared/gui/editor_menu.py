@@ -15,7 +15,7 @@ from bs4 import BeautifulSoup
 from ankisquared.config import Config
 from ankisquared.consts import ICONS_PATH
 from ankisquared.gui.config_dialog import generate_config_dialog
-from ankisquared.api import images, pronunciations, sentences
+from ankisquared.api import bing_images, forvo, openai
 
 
 NUM_IMAGES = 3
@@ -54,11 +54,11 @@ def did_load_editor(buttons: list, editor: Editor):
 
         if is_valid_field(editor) and query:
             if endpoint == "Bing":
-                suggestion = images.get_images(query, **config)
+                suggestion = bing_images.get_images(query, **config)
             elif endpoint == "Forvo":
-                suggestion = pronunciations.get_pronunciations(query, **config)
+                suggestion = forvo.get_pronunciations(query, **config)
             elif endpoint == "OpenAI":
-                suggestion = sentences.get_sentence(query, **config)
+                suggestion = openai.get_sentence(query, **config)
             else:
                 showWarning(f"Unknown endpoint: {endpoint}")
                 return

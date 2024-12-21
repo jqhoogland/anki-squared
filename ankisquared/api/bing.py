@@ -79,12 +79,12 @@ def search_bing_images(
 
 
 def get_images(
-    keywords: str, bing_api_key: str, language: str, num_images: int, **_
+    query: str, bing_api_key: str, language: str, num_images: int, **_
 ) -> Suggestion:
     """Get image thumbnails from Bing Image Search.
 
     Args:
-        keywords (str): Search query
+        query (str): Search query
         bing_api_key (str): Bing API subscription key
         language (str): Market code for search results
         num_images (int): Number of images to retrieve
@@ -98,7 +98,7 @@ def get_images(
             r["thumbnail"]
             for r in search_bing_images(
                 session=session,
-                query=keywords,
+                query=query,
                 subscription_key=bing_api_key,
                 mkt=language,
                 num_results=num_images,
