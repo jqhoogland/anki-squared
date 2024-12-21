@@ -15,11 +15,8 @@ from bs4 import BeautifulSoup
 from ankisquared.config import Config
 from ankisquared.consts import ICONS_PATH
 from ankisquared.gui.config_dialog import generate_config_dialog
-from ankisquared.recs import images, pronunciations, sentences
+from ankisquared.api import images, pronunciations, sentences
 
-# from ankisquared.recs.images import get_images
-# from ankisquared.recs.pronunciations import get_pronunciations
-# from ankisquared.recs.sentences import get_sentence
 
 NUM_IMAGES = 3
 
