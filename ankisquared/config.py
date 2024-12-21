@@ -22,6 +22,7 @@ class ButtonConfig:
     endpoint: Endpoint
     prompt: str = "{0}"
     keys: Optional[str] = None
+    label: str = ""
 
     @property
     def cmd(self) -> str:

@@ -112,8 +112,16 @@ def did_load_editor(buttons: list, editor: Editor):
         Returns:
             Button instance
         """
+
+        icon = get_icon_path(button_config.icon) if button_config.icon else None
+        label = button_config.label
+
+        if not icon and not label:
+            label = f"Suggest {button_config.name}"
+
         return editor.addButton(
-            icon=get_icon_path(button_config.icon),
+            icon=icon,
+            label=label,
             func=lambda s=editor: unified_action(s, button_config),
             cmd=button_config.cmd,
             tip=button_config.tip,

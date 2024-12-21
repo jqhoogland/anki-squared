@@ -35,7 +35,7 @@ def generate_button_config_panel(
     layout = QVBoxLayout()
     widgets = {}
 
-    for field in ["name", "endpoint", "prompt", "icon", "tip", "keys"]:
+    for field in ["name", "endpoint", "prompt", "icon", "label", "tip", "keys"]:
         label = QLabel(field.replace("_", " ").capitalize() + ":")
         layout.addWidget(label)
 
@@ -46,6 +46,7 @@ def generate_button_config_panel(
         elif field == "icon":
             widget = QComboBox()
             icons = [
+                "",
                 "image-search.png",
                 "forvo.png",
                 "example.png",
