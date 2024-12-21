@@ -81,7 +81,7 @@ def did_load_editor(buttons: list, editor: Editor):
             Button instance
         """
         return editor.addButton(
-            icon=get_icon_path(ICONS_PATH, button_config.icon),
+            icon=get_icon_path(button_config.icon),
             cmd=button_config.cmd,
             func=lambda s=editor: unified_action(s, button_config),
             tip=button_config.tip,
@@ -96,7 +96,7 @@ def did_load_editor(buttons: list, editor: Editor):
 
     # Add settings button
     settings_btn = editor.addButton(
-        icon=get_icon_path(ICONS_PATH, "settings.png"),
+        icon=get_icon_path("settings.png"),
         cmd="openSettings",
         func=lambda s=editor: generate_config_dialog(s.config),
         tip="Open suggestion settings",

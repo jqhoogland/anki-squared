@@ -1,10 +1,17 @@
 from dataclasses import asdict, dataclass, field
 from pprint import pp
 from typing import Annotated, List, Literal, Optional
+from enum import Enum
 
 from aqt import mw
 
 from ankisquared.consts import LANGUAGES, ModelLiteral
+
+
+class Endpoint(str, Enum):
+    BING = "Bing"
+    FORVO = "Forvo"
+    OPENAI = "OpenAI"
 
 
 @dataclass
@@ -13,7 +20,7 @@ class ButtonConfig:
     icon: str
     cmd: str
     tip: str
-    endpoint: Literal["Bing", "Forvo", "OpenAI"]
+    endpoint: Endpoint
     prompt: str = "{0}"
     keys: Optional[str] = None
 
@@ -68,9 +75,6 @@ class Config:
         conf.update(asdict(self))
         mw.addonManager.writeConfig("ankisquared", conf)
 
-        print("Saved config:")
-        pp(conf)
-
     def update(self, **fields):
         for key, value in fields.items():
             setattr(self, key, value)
@@ -84,7 +88,7 @@ images_button = ButtonConfig(
     icon="image-search.png",  # replace with appropriate icon filename
     cmd="genImages",
     tip="Suggest Images from Bing",
-    endpoint="Bing",
+    endpoint=Endpoint.BING,
     keys="Ctrl+1",
 )
 
@@ -94,7 +98,7 @@ pronunciations_button = ButtonConfig(
     icon="forvo.png",  # replace with appropriate icon filename
     cmd="genPronunciations",
     tip="Suggest Pronunciations from Forvo",
-    endpoint="Forvo",
+    endpoint=Endpoint.FORVO,
     keys="Ctrl+2",
 )
 
@@ -104,7 +108,7 @@ examples_button = ButtonConfig(
     icon="example.png",  # replace with appropriate icon filename
     cmd="genSentences",
     tip="Suggest Sentences using OpenAI",
-    endpoint="OpenAI",
+    endpoint=Endpoint.OPENAI,
     prompt="Provide several example sentences for the word `{0}` separated by newlines.",
     keys="Ctrl+3",
 )
@@ -115,7 +119,7 @@ definitions_button = ButtonConfig(
     icon="definition.png",  # replace with appropriate icon filename
     cmd="genDefinitions",
     tip="Suggest Definition using OpenAI",
-    endpoint="OpenAI",
+    endpoint=Endpoint.OPENAI,
     prompt="Provide a definition for `{0}`.",
     keys="Ctrl+4",
 )
@@ -126,7 +130,7 @@ ipa_button = ButtonConfig(
     icon="ipa.png",  # replace with appropriate icon filename
     cmd="genIPA",
     tip="Generate IPA Transcription using OpenAI",
-    endpoint="OpenAI",
+    endpoint=Endpoint.OPENAI,
     prompt="Provide the IPA for `{0}`.",
     keys="Ctrl+5",
 )

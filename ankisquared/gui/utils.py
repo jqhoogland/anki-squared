@@ -1,13 +1,14 @@
 import html
 from typing import Literal
 from bs4 import BeautifulSoup
+from ankisquared.consts import ICONS_PATH
 from aqt.editor import Editor
 from aqt.utils import showWarning
 from pathlib import Path
 
 IconName = Literal["chatgpt.png", "definition.png", "example.png", "image-search.png", "ipa.png", "settings.png"]
 
-def get_icon_path(icons_path: Path, icon_name: IconName) -> str:
+def get_icon_path(icon_name: IconName) -> str:
     """Get the full path for an icon file.
     
     Args:
@@ -17,7 +18,7 @@ def get_icon_path(icons_path: Path, icon_name: IconName) -> str:
     Returns:
         str: Full path to icon file
     """
-    return str(icons_path / icon_name)
+    return str(ICONS_PATH / icon_name)
 
 def is_valid_field(editor: Editor) -> bool:
     """Check if a valid field is selected in the editor.
