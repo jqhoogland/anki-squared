@@ -56,7 +56,6 @@ Settings are managed through a configuration dialog that allows users to:
 {
     "name": "NewButton",
     "icon": "icon.png",
-    "cmd": "newCommand",
     "tip": "Button tooltip",
     "action_endpoint": "API",
     "action_prompt": "Prompt template",

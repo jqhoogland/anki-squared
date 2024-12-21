@@ -18,11 +18,14 @@ class Endpoint(str, Enum):
 class ButtonConfig:
     name: str
     icon: str
-    cmd: str
     tip: str
     endpoint: Endpoint
     prompt: str = "{0}"
     keys: Optional[str] = None
+
+    @property
+    def cmd(self) -> str:
+        return f"suggest{''.join(word.capitalize() for word in self.name.split())}"
 
 
 @dataclass
@@ -52,10 +55,12 @@ class Config:
         print("Loaded config:")
         pp(conf)
 
-        button_configs = [
-            ButtonConfig(**button_conf)
-            for button_conf in conf.get("buttons", None) or []
-        ] or default_buttons
+        button_configs = []
+
+        for button_conf in conf.get("buttons", None) or []:
+            if "cmd" in button_conf:
+                button_conf.pop("cmd")
+            button_configs.append(ButtonConfig(**button_conf))
 
         return cls(
             language=conf.get("language", "en"),
@@ -86,7 +91,6 @@ class Config:
 images_button = ButtonConfig(
     name="Images",
     icon="image-search.png",  # replace with appropriate icon filename
-    cmd="genImages",
     tip="Suggest Images from Bing",
     endpoint=Endpoint.BING,
     keys="Ctrl+1",
@@ -96,7 +100,6 @@ images_button = ButtonConfig(
 pronunciations_button = ButtonConfig(
     name="Pronunciations",
     icon="forvo.png",  # replace with appropriate icon filename
-    cmd="genPronunciations",
     tip="Suggest Pronunciations from Forvo",
     endpoint=Endpoint.FORVO,
     keys="Ctrl+2",
@@ -106,7 +109,6 @@ pronunciations_button = ButtonConfig(
 examples_button = ButtonConfig(
     name="Examples",
     icon="example.png",  # replace with appropriate icon filename
-    cmd="genSentences",
     tip="Suggest Sentences using OpenAI",
     endpoint=Endpoint.OPENAI,
     prompt="Provide several example sentences for the word `{0}` separated by newlines.",
@@ -117,7 +119,6 @@ examples_button = ButtonConfig(
 definitions_button = ButtonConfig(
     name="Definitions",
     icon="definition.png",  # replace with appropriate icon filename
-    cmd="genDefinitions",
     tip="Suggest Definition using OpenAI",
     endpoint=Endpoint.OPENAI,
     prompt="Provide a definition for `{0}`.",
@@ -128,7 +129,6 @@ definitions_button = ButtonConfig(
 ipa_button = ButtonConfig(
     name="IPA",
     icon="ipa.png",  # replace with appropriate icon filename
-    cmd="genIPA",
     tip="Generate IPA Transcription using OpenAI",
     endpoint=Endpoint.OPENAI,
     prompt="Provide the IPA for `{0}`.",

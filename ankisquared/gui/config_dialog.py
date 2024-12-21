@@ -1,10 +1,6 @@
-import sys
-import types
 from dataclasses import fields
-from typing import Annotated, Dict, Literal, Tuple, Union, get_args, get_origin
+from typing import Dict, Literal, Tuple, Union, get_args, get_origin
 
-from aqt import mw
-from aqt.editor import Editor
 from aqt.qt import (
     QComboBox,
     QDialog,
@@ -19,13 +15,13 @@ from aqt.qt import (
     QWidget,
 )
 
-from ankisquared.config import ButtonConfig, Config
+from ankisquared.config import ButtonConfig, Config, Endpoint
 from ankisquared.consts import DIFFICULTIES, LANGUAGES
 
 
 def generate_button_config_panel(
     button_config: ButtonConfig, parent: QWidget = None
-) -> Tuple[QVBoxLayout, Dict[str, QLineEdit]]:
+) -> Tuple[QVBoxLayout, Dict[str, QWidget]]:
     """Generate a panel for configuring a single button.
 
     Args:
@@ -38,14 +34,25 @@ def generate_button_config_panel(
     layout = QVBoxLayout()
     widgets = {}
 
-    for field in fields(ButtonConfig):
-        label = QLabel(field.name.replace("_", " ").capitalize() + ":")
-        layout.addWidget(label)
+    for field in ["name", "endpoint", "prompt", "icon", "keys"]:
+        label = QLabel(field.replace("_", " ").capitalize() + ":")
+        layout.addWidget(label) 
 
-        widget = QLineEdit()
-        widget.setText(str(getattr(button_config, field.name)))
+        if field == "endpoint":
+            widget = QComboBox()
+            widget.addItems([e.value for e in Endpoint])
+            widget.setCurrentText(getattr(button_config, field))
+        elif field == "icon":
+            widget = QComboBox()
+            icons = ["image-search.png", "forvo.png", "example.png", "definition.png", "ipa.png"]
+            widget.addItems(icons)
+            widget.setCurrentText(getattr(button_config, field))
+        else:
+            widget = QLineEdit()
+            widget.setText(str(getattr(button_config, field)))
+
         layout.addWidget(widget)
-        widgets[field.name] = widget
+        widgets[field] = widget
 
     return layout, widgets
 
@@ -66,19 +73,17 @@ def generate_config_panel(
     layout = QVBoxLayout()
     widgets = {}
 
-    for field in fields(Config):
-        if get_origin(field.type) is list and get_args(field.type)[0] == ButtonConfig:
-            button_configs = config.buttons
-            widgets["buttons"] = []
+    button_configs = config.buttons
+    widgets["buttons"] = []
 
-            for i, btn_conf in enumerate(button_configs):
-                btn_widget = QWidget()
-                btn_layout, btn_widget_dict = generate_button_config_panel(btn_conf, dialog)
-                btn_widget.setLayout(btn_layout)
-                tab_widget.addTab(btn_widget, f"Button {i + 1}")
-                widgets["buttons"].append(btn_widget_dict)
-            continue
+    for i, btn_conf in enumerate(button_configs):
+        btn_widget = QWidget()
+        btn_layout, btn_widget_dict = generate_button_config_panel(btn_conf, dialog)
+        btn_widget.setLayout(btn_layout)
+        widgets["buttons"].append(btn_widget)
 
+    for field_name in ["language", "difficulty", "bing_api_key", "num_images", "openai_api_key", "model", "max_tokens", "temperature", "forvo_api_key"]:
+        field = next(f for f in fields(Config) if f.name == field_name)
         label = QLabel(field.name.replace("_", " ").capitalize() + ":")
         layout.addWidget(label)
 
@@ -131,6 +136,9 @@ def generate_config_dialog(config: Config) -> None:
     overall_settings_layout, widgets = generate_config_panel(config, dialog, tab_widget)
     overall_settings_widget.setLayout(overall_settings_layout)
     tab_widget.addTab(overall_settings_widget, "Overall")
+
+    for i, btn_widget in enumerate(widgets["buttons"]):
+        tab_widget.addTab(btn_widget, f"Button {i + 1}")
 
     layout = QVBoxLayout()
     layout.addWidget(tab_widget)
