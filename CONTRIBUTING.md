@@ -14,7 +14,36 @@
 
 1. Make code changes
 2. In Anki, use Ctrl+Shift+R to reload add-ons
-3. Check the Anki debug console for errors
+3. Check the Anki debug console for errors:
+
+### Accessing the Debug Console
+
+**Windows**:
+- Launch Anki using `anki-console.bat` located in:
+  - `C:\Users\<username>\AppData\Local\Programs\Anki` or
+  - `C:\Program Files\Anki`
+
+**macOS**:
+
+```
+bash
+/Applications/Anki.app/Contents/MacOS/anki
+```
+
+**Linux**:
+
+```
+bash
+anki
+```
+
+### Debug Tips
+- Use `showInfo()` for debugging:
+  ```python
+  from aqt.utils import showInfo
+  showInfo("Debug message")
+  ```
+- Check the [Official Anki Add-on Documentation](https://addon-docs.ankiweb.net/) for API references
 
 ## Testing
 
@@ -29,3 +58,4 @@
 1. Update documentation
 2. Test all features
 3. Submit PR with clear description
+

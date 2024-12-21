@@ -17,7 +17,6 @@
     - [From Source](#from-source)
   - [Usage](#usage)
   - [Configuration](#configuration)
-  - [Development](#development)
   - [Contributing](#contributing)
   - [License](#license)
 
@@ -87,18 +86,6 @@ pip install -r requirements.txt
      "openai_api_key": "your-openai-api-key"
    }
    ```
-
-## Development
-
-Hot reload development:
-```bash
-# Make code changes
-# Press Ctrl+Shift+R in Anki to reload add-ons
-
-# Debug using:
-from aqt.utils import showInfo
-showInfo("Debug message")
-```
 
 ## Contributing
 
