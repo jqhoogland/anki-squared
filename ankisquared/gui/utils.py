@@ -77,3 +77,26 @@ def render_button_as_text(button_config: ButtonConfig, config: Config) -> str:
         return f"System Prompt ({config.model}): \n\n{config.system_prompt.format(**asdict(config), **asdict(button_config))}"
     else:
         return button_config.tip
+
+
+def get_value(widget):
+    """
+    Helper function to retrieve a value from a widget in a unified manner.
+    """
+    if hasattr(widget, "currentIndex"):
+        if hasattr(widget, "itemData"):
+            value = widget.itemData(widget.currentIndex())
+
+            if value is not None:
+                return value
+
+    
+    if hasattr(widget, "text"):
+        return widget.text()
+    elif hasattr(widget, "toPlainText"):
+        return widget.toPlainText()
+    elif hasattr(widget, "currentText"):
+        return widget.currentText()
+    elif hasattr(widget, "value"):
+        return widget.value()
+    raise ValueError(f"No value attribute found for widget {widget}")

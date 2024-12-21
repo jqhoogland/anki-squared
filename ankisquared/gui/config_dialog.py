@@ -16,9 +16,9 @@ from aqt.qt import (
     QWidget,
 )
 
-from ankisquared.config import ButtonConfig, Config, Endpoint
+from ankisquared.config import ButtonConfig, Config, Endpoint, ProfileConfig
 from ankisquared.consts import DIFFICULTIES, LANGUAGES
-
+from ankisquared.gui.utils import get_value
 
 def generate_general_settings_panel(
     config: Config, parent: QWidget = None
@@ -30,73 +30,110 @@ def generate_general_settings_panel(
     layout = QVBoxLayout()
     widgets = {}
 
-    # Go through each field in Config that isn't "buttons"
+    # Only keep the top-level fields that remain in Config
+    # (i.e., the API keys). The rest is now in ProfileConfig.
     general_fields = [
-        "language",
-        "difficulty",
-        "bing_api_key",
-        "num_images",
-        "openai_api_key",
-        "model",
-        "max_tokens",
-        "temperature",
         "forvo_api_key",
-        "system_prompt",
+        "bing_api_key",
+        "openai_api_key",
     ]
 
     for field_name in general_fields:
-        field = next(f for f in fields(Config) if f.name == field_name)
+        field_label = QLabel(field_name.replace("_", " ").capitalize() + ":", parent)
+        layout.addWidget(field_label)
 
-        label = QLabel(field.name.replace("_", " ").capitalize() + ":")
-        layout.addWidget(label)
-
-        # If it’s an API key or a simple QLineEdit field
-        if "api_key" in field.name:
-            widget = QLineEdit()
-            widget.setText(getattr(config, field.name))
-            layout.addWidget(widget)
-            widgets[field.name] = widget
-            continue
-
-        # If field type has metadata with options (like languages/difficulties)
-        metadata = getattr(field.type, "__metadata__", None)
-        if metadata and "options" in metadata[0]:
-            widget = QComboBox()
-            for name, code in metadata[0]["options"].items():
-                widget.addItem(name, code)
-            widget.setCurrentIndex(widget.findData(getattr(config, field.name)))
-
-        # If field type is a Literal (e.g. from typing import Literal)
-        elif get_origin(field.type) is Literal:
-            widget = QComboBox()
-            widget.addItems(get_args(field.type))
-            widget.setCurrentText(getattr(config, field.name))
-
-        # If field type is int
-        elif field.type == int:
-            widget = QSpinBox()
-            widget.setRange(0, 1000)
-            widget.setValue(int(getattr(config, field.name)))
-
-        # If field type is float
-        elif field.type == float:
-            widget = QDoubleSpinBox()
-            widget.setRange(0.0, 5.0)
-            widget.setValue(float(getattr(config, field.name)))
-
-        # If field name is "system_prompt" (a multi-line field)
-        elif field.name == "system_prompt":
-            widget = QTextEdit()
-            widget.setText(str(getattr(config, field.name)))
-
-        else:
-            widget = QLineEdit()
-            widget.setText(str(getattr(config, field.name)))
-
-        layout.addWidget(widget)
-        widgets[field.name] = widget
+        field_widget = QLineEdit(parent)
+        field_widget.setText(str(getattr(config, field_name)))
+        layout.addWidget(field_widget)
+        widgets[field_name] = field_widget
 
     return layout, widgets
+
+
+def generate_profile_config_panel(
+    profile_config: ProfileConfig,
+    profile_index: int,
+    parent: QWidget = None,
+    on_remove=None,
+    on_duplicate=None,
+) -> QWidget:
+    """
+    Create a QWidget for configuring a single ProfileConfig, including
+    Remove and Duplicate buttons.
+    """
+    widget = QWidget(parent)
+    layout = QVBoxLayout(widget)
+    fields_dict = {}
+
+    # Pick the fields in ProfileConfig to expose
+    profile_fields = [
+        "name",
+        "language",
+        "num_images",
+        "model",
+        "max_tokens",
+        "temperature",
+        "system_prompt",
+    ]
+
+    for field_name in profile_fields:
+        label = QLabel(field_name.replace("_", " ").capitalize() + ":", widget)
+        layout.addWidget(label)
+
+        field_type = next(f.type for f in fields(ProfileConfig) if f.name == field_name)
+        # If field type has metadata with options
+        metadata = getattr(field_type, "__metadata__", None)
+
+        if field_name == "system_prompt":
+            field_widget = QTextEdit(widget)
+            field_widget.setText(str(getattr(profile_config, field_name)))
+        elif metadata and "options" in metadata[0]:
+            # For example, languages
+            field_widget = QComboBox(widget)
+            for name, code in metadata[0]["options"].items():
+                field_widget.addItem(name, code)
+            field_widget.setCurrentIndex(
+                field_widget.findData(getattr(profile_config, field_name))
+            )
+        elif get_origin(field_type) is Literal:
+            # If it's a Literal (e.g. model choices)
+            field_widget = QComboBox(widget)
+            field_widget.addItems(get_args(field_type))
+            field_widget.setCurrentText(str(getattr(profile_config, field_name)))
+        elif field_type == int:
+            field_widget = QSpinBox(widget)
+            field_widget.setRange(0, 5000)
+            field_widget.setValue(int(getattr(profile_config, field_name)))
+        elif field_type == float:
+            field_widget = QDoubleSpinBox(widget)
+            field_widget.setRange(0.0, 5.0)
+            field_widget.setValue(float(getattr(profile_config, field_name)))
+        else:
+            # Default to QLineEdit
+            field_widget = QLineEdit(widget)
+            field_widget.setText(str(getattr(profile_config, field_name)))
+
+        layout.addWidget(field_widget)
+        fields_dict[field_name] = field_widget
+
+    widget.fields_dict = fields_dict
+
+    # Add remove/duplicate buttons
+    button_layout = QHBoxLayout()
+    remove_button = QPushButton("Remove", widget)
+    duplicate_button = QPushButton("Duplicate", widget)
+    button_layout.addWidget(remove_button)
+    button_layout.addWidget(duplicate_button)
+    layout.addLayout(button_layout)
+
+    if on_remove:
+        remove_button.clicked.connect(lambda: on_remove(profile_index, profile_config))
+    if on_duplicate:
+        duplicate_button.clicked.connect(
+            lambda: on_duplicate(profile_index, profile_config)
+        )
+
+    return widget
 
 
 def generate_button_config_panel(
@@ -142,16 +179,14 @@ def generate_button_config_panel(
         fields_dict[field_name] = field_widget
 
     widget.fields_dict = fields_dict
-    # Add buttons for removing or duplicating this button
+
     button_layout = QHBoxLayout()
     remove_button = QPushButton("Remove", widget)
     duplicate_button = QPushButton("Duplicate", widget)
-
     button_layout.addWidget(remove_button)
     button_layout.addWidget(duplicate_button)
     layout.addLayout(button_layout)
 
-    # Wire up callbacks
     if on_remove:
         remove_button.clicked.connect(lambda: on_remove(button_index, button_config))
     if on_duplicate:
@@ -162,60 +197,119 @@ def generate_button_config_panel(
     return widget
 
 
-def get_value(widget):
-    if hasattr(widget, "text"):
-        return widget.text()
-    elif hasattr(widget, "toPlainText"):
-        return widget.toPlainText()
-    elif hasattr(widget, "currentText"):
-        return widget.currentText()
-    elif hasattr(widget, "currentIndex"):
-        return widget.currentIndex()
-    elif hasattr(widget, "value"):
-        return widget.value()
-    else:
-        raise ValueError(f"No value attribute found for widget {widget}")
-
-
 def generate_config_dialog(config: Config):
     dialog = QDialog()
     dialog.setWindowTitle("Settings")
     main_layout = QVBoxLayout(dialog)
 
-    # Create a top-level tab widget (1) for General / (2) for Buttons
     top_tab_widget = QTabWidget(dialog)
+    main_layout.addWidget(top_tab_widget)
 
     # -- General Tab --
     general_tab = QWidget(dialog)
-    general_layout, general_widgets = generate_general_settings_panel(
-        config, general_tab
-    )
+    general_layout, general_widgets = generate_general_settings_panel(config, general_tab)
     general_tab.setLayout(general_layout)
     top_tab_widget.addTab(general_tab, "General")
 
-    # -- Button Tab Widget --
-    button_tab_widget = QTabWidget(dialog)
-    # We'll refresh the tabs in a function to keep them up-to-date
+    # -- Profiles Tab (with sub-tabs) --
+    profiles_tab_outer = QWidget(dialog)
+    profiles_tab_layout = QVBoxLayout(profiles_tab_outer)
+    profiles_tab_widget = QTabWidget(profiles_tab_outer)
+    profiles_tab_layout.addWidget(profiles_tab_widget)
+    profiles_tab_outer.setLayout(profiles_tab_layout)
+    top_tab_widget.addTab(profiles_tab_outer, "Profiles")
+
+    def on_remove_profile(profile_index, profile_conf):
+        config.profiles.pop(profile_index)
+        refresh_profile_tabs()
+
+    def on_duplicate_profile(profile_index, profile_conf):
+        import copy
+        new_profile = copy.deepcopy(profile_conf)
+        config.profiles.append(new_profile)
+        refresh_profile_tabs()
+
+    def on_add_profile():
+        # Create a default new profile
+        new_profile = ProfileConfig(
+            name="New Profile",
+            language="en",
+            num_images=3,
+            model="gpt-4o",
+            max_tokens=100,
+            temperature=0.7,
+        )
+        config.profiles.append(new_profile)
+        refresh_profile_tabs()
+        if profiles_tab_widget.count() > 1:
+            profiles_tab_widget.setCurrentIndex(profiles_tab_widget.count() - 2)
+
+    def refresh_profile_tabs():
+        # Remove all existing tabs
+        while profiles_tab_widget.count() > 0:
+            profiles_tab_widget.removeTab(0)
+
+        # Create a tab for each profile
+        for i, profile in enumerate(config.profiles):
+            profile_panel = generate_profile_config_panel(
+                profile,
+                i,
+                parent=dialog,
+                on_remove=on_remove_profile,
+                on_duplicate=on_duplicate_profile,
+            )
+            profiles_tab_widget.addTab(profile_panel, f"Profile {i+1}")
+
+        # Add a "+" tab for adding new profiles
+        plus_panel = QWidget()
+        plus_index = profiles_tab_widget.addTab(plus_panel, "+")
+        profiles_tab_widget.setCurrentIndex(0 if config.profiles else plus_index)
+
+    def on_profiles_tab_clicked(index):
+        if index == profiles_tab_widget.count() - 1:
+            on_add_profile()
+
+    profiles_tab_widget.tabBarClicked.connect(on_profiles_tab_clicked)
+    refresh_profile_tabs()
+
+    # -- Buttons Tab (with sub-tabs) --
+    buttons_tab_outer = QWidget(dialog)
+    buttons_tab_layout = QVBoxLayout(buttons_tab_outer)
+    buttons_tab_widget = QTabWidget(buttons_tab_outer)
+    buttons_tab_layout.addWidget(buttons_tab_widget)
+    buttons_tab_outer.setLayout(buttons_tab_layout)
+    top_tab_widget.addTab(buttons_tab_outer, "Buttons")
 
     def on_remove_button(button_index, button_conf):
-        print(f"Removing suggestion button {button_index + 1}...")
         config.buttons.pop(button_index)
         refresh_button_tabs()
 
-    def on_duplicate_button(button_index, duplicate_conf):
+    def on_duplicate_button(button_index, button_conf):
         import copy
-
-        print(f"Duplicating suggestion button {button_index + 1}...")
-        new_button = copy.deepcopy(duplicate_conf)
+        new_button = copy.deepcopy(button_conf)
         config.buttons.append(new_button)
         refresh_button_tabs()
 
-    def refresh_button_tabs():
-        # Remove all tabs
-        while button_tab_widget.count() > 0:
-            button_tab_widget.removeTab(0)
+    def on_add_button():
+        # Create a default new button
+        new_btn = ButtonConfig(
+            name="New Button",
+            endpoint=Endpoint.BING,
+            prompt="",
+            icon="",
+            label="",
+            tip="",
+            keys="",
+        )
+        config.buttons.append(new_btn)
+        refresh_button_tabs()
+        if buttons_tab_widget.count() > 1:
+            buttons_tab_widget.setCurrentIndex(buttons_tab_widget.count() - 2)
 
-        # Add one tab per ButtonConfig
+    def refresh_button_tabs():
+        while buttons_tab_widget.count() > 0:
+            buttons_tab_widget.removeTab(0)
+
         for i, btn_conf in enumerate(config.buttons):
             panel = generate_button_config_panel(
                 btn_conf,
@@ -224,97 +318,42 @@ def generate_config_dialog(config: Config):
                 on_remove=on_remove_button,
                 on_duplicate=on_duplicate_button,
             )
-            button_tab_widget.addTab(panel, f"Button {i+1}")
+            buttons_tab_widget.addTab(panel, f"Button {i+1}")
 
-        # Lastly, add the "+" tab and store its index
         plus_panel = QWidget()
-        plus_index = button_tab_widget.addTab(plus_panel, "+")
-        button_tab_widget.setCurrentIndex(0)  # Show the first button if it exists
+        plus_index = buttons_tab_widget.addTab(plus_panel, "+")
+        buttons_tab_widget.setCurrentIndex(0 if config.buttons else plus_index)
 
-    def on_add_button():
-        # Create a default new button
-        new_btn = (
-            type(config.buttons[0])(
-                name="New Button",
-                endpoint="",
-                prompt="",
-                icon="",
-                label="",
-                tip="",
-                keys="",
-            )
-            if config.buttons
-            else None
-        )
-        if new_btn is None:
-            # If there are no existing buttons to reference, create one from scratch or your default
-            from dataclasses import make_dataclass
-
-            # For demonstration, just use a "bare" ButtonConfig
-            # (replace with real ButtonConfig class as in your code)
-            ButtonConfig = make_dataclass(
-                "ButtonConfig",
-                [
-                    ("name", str),
-                    ("endpoint", str),
-                    ("prompt", str),
-                    ("icon", str),
-                    ("label", str),
-                    ("tip", str),
-                    ("keys", str),
-                ],
-            )
-            new_btn = ButtonConfig("New Button", "", "", "", "", "", "")
-
-        config.buttons.append(new_btn)
-        refresh_button_tabs()
-
-        # Switch to the newly created tab (second to last tab is the new button):
-        if button_tab_widget.count() > 1:
-            button_tab_widget.setCurrentIndex(button_tab_widget.count() - 2)
-
-    # Connect the built-in signal tabBarClicked to detect clicks on the “+” tab
-    def on_tab_bar_clicked(idx):
-        # If the user clicked the last tab, that is the “+” tab
-        if idx == button_tab_widget.count() - 1:
+    def on_buttons_tab_clicked(idx):
+        if idx == buttons_tab_widget.count() - 1:
             on_add_button()
 
-    button_tab_widget.tabBarClicked.connect(on_tab_bar_clicked)
-
-    # Populate the tabs initially
+    buttons_tab_widget.tabBarClicked.connect(on_buttons_tab_clicked)
     refresh_button_tabs()
 
-    # Wrap button_tab_widget in its own tab on top_tab_widget
-    buttons_outer = QWidget(dialog)
-    outer_layout = QVBoxLayout(buttons_outer)
-    outer_layout.addWidget(button_tab_widget)
-    buttons_outer.setLayout(outer_layout)
-
-    top_tab_widget.addTab(buttons_outer, "Buttons")
-
-    main_layout.addWidget(top_tab_widget)
-
-    # -- Save/Cancel --
+    # -- Save/Cancel buttons --
     def save_config():
-        # Update config fields from general widgets
-        for field_info in fields(config.__class__):
-            if field_info.name == "buttons":
-                for i in range(button_tab_widget.count() - 1):
-                    tab_widget = button_tab_widget.widget(i)
+        # Update general fields
+        for field_name, widget in general_widgets.items():
+            setattr(config, field_name, get_value(widget))
 
-                    # Check if this tab has fields_dict
-                    if not hasattr(tab_widget, "fields_dict"):
-                        continue  # Skip any tabs without it
+        # Update each profile tab
+        for i in range(profiles_tab_widget.count() - 1):
+            tab_widget = profiles_tab_widget.widget(i)
+            if hasattr(tab_widget, "fields_dict"):
+                prof_conf = config.profiles[i]
+                for k, w in tab_widget.fields_dict.items():
+                    setattr(prof_conf, k, get_value(w))
 
-                    button_conf = config.buttons[i]
-                    for field_name, field_widget in tab_widget.fields_dict.items():
-                        setattr(button_conf, field_name, get_value(field_widget))
+        # Update each button tab
+        for i in range(buttons_tab_widget.count() - 1):
+            tab_widget = buttons_tab_widget.widget(i)
+            if hasattr(tab_widget, "fields_dict"):
+                button_conf = config.buttons[i]
+                for k, w in tab_widget.fields_dict.items():
+                    setattr(button_conf, k, get_value(w))
 
-            if field_info.name in general_widgets:
-                w = general_widgets[field_info.name]
-
-                config.__dict__[field_info.name] = get_value(w)
-
+        print("Saving config...")
         config.save_to_conf()
 
     btn_layout = QHBoxLayout()
@@ -326,5 +365,5 @@ def generate_config_dialog(config: Config):
     btn_layout.addWidget(cancel_btn)
     main_layout.addLayout(btn_layout)
 
-    dialog.resize(600, 400)
+    dialog.resize(700, 500)
     dialog.exec()

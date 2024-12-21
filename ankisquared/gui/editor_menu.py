@@ -85,8 +85,11 @@ def did_load_editor(buttons: list, editor: Editor):
 
         if not ok or not query:
             return
-
-        config = asdict(editor.config) | asdict(action_config)
+        
+        config = asdict(editor.config)
+        active_profile = config.pop("profiles")[0] # TODO
+        button_config =  asdict(action_config)
+        config = config | active_profile | button_config
 
         if query:
             if endpoint == "Bing":
