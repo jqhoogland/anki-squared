@@ -1,6 +1,5 @@
 # Anki²
 
-<!-- TODO: [![PyPI version](https://badge.fury.io/py/ankisquared.svg)](https://badge.fury.io/py/ankisquared) -->
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 <!-- TODO: [![Downloads](https://static.pepy.tech/personalized-badge/ankisquared?period=total&units=international_system&left_color=black&right_color=orange&left_text=Downloads)](https://pepy.tech/project/ankisquared) -->
 [![Anki: 2.1.65+](https://img.shields.io/badge/Anki-2.1.65%2B-blue.svg)](https://apps.ankiweb.net)
@@ -8,7 +7,7 @@
 
 > An Anki add-on that enhances card creation by integrating AI and external APIs to provide rich content for your flashcards.
 
-<!-- TODO: ![Demo](docs/assets/demo.gif) -->
+![Demo](docs/assets/demo.gif)
 
 - [Anki²](#anki)
   - [Features](#features)

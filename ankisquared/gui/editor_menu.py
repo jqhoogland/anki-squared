@@ -69,12 +69,18 @@ def did_load_editor(buttons: list, editor: Editor):
 
         query = prompt_raw.format(*field_values, **fields_dict)
 
-        query, ok = QInputDialog.getText(
-            editor.parentWindow,
-            action_config.name,
-            f"{render_button_as_text(action_config, editor.config)}\n\nEnter your query:",
-            text=query,
-        )
+        dialog = QInputDialog(editor.parentWindow)
+        dialog.setWindowTitle(action_config.name)
+        dialog.setLabelText(f"{render_button_as_text(action_config, editor.config)}\n\nEnter your query:")
+        dialog.setTextValue(query)
+        dialog.setMinimumWidth(600)
+        dialog.setMinimumHeight(300)
+        dialog.resize(600, 300)  # Set initial size
+        dialog.setFixedSize(600, 300)  # Force the size
+
+        ok = dialog.exec()
+        query = dialog.textValue()
+
         if not ok or not query:
             return
 
