@@ -61,7 +61,7 @@ class Config:
                 button_conf.pop("cmd")
             button_configs.append(ButtonConfig(**button_conf))
 
-        return cls(
+        config = cls(
             language=conf.get("language", "en"),
             difficulty=conf.get("difficulty", "A1"),
             forvo_api_key=conf.get("forvo_api_key", ""),
@@ -74,13 +74,17 @@ class Config:
             system_prompt=conf.get("system_prompt", "You are the world's best language teacher (language: {language}, student's level: {difficulty})."),
             buttons=button_configs,
         )
+        config.cast()
+        return config
     
     def reset(self):
         conf = asdict(self.from_conf())
         buttons = [ButtonConfig(**button) for button in conf.pop("buttons")]
         self.update(**conf, buttons=buttons)
+        self.cast()
 
     def save_to_conf(self):
+        self.cast()
         conf = mw.addonManager.getConfig("ankisquared") or {}
         conf.update(asdict(self))
         mw.addonManager.writeConfig("ankisquared", conf)
@@ -90,3 +94,9 @@ class Config:
             setattr(self, key, value)
 
         self.save_to_conf()
+
+
+    def cast(self):
+        self.num_images = int(self.num_images)
+        self.max_tokens = int(self.max_tokens)
+        self.temperature = float(self.temperature)
