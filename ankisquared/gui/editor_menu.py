@@ -3,46 +3,63 @@ from typing import List
 
 from aqt.editor import Editor
 from aqt.utils import showWarning
+from aqt.qt import QInputDialog
 
-from ankisquared.config import Config
+from ankisquared.config import ButtonConfig, Config
 from ankisquared.consts import ICONS_PATH
 from ankisquared.gui.config_dialog import generate_config_dialog
-from ankisquared.gui.utils import get_icon_path, is_valid_field, clean_html, retrieve_and_escape_url
+from ankisquared.gui.utils import (
+    get_icon_path,
+    is_valid_field,
+    clean_html,
+    render_button_as_text,
+    retrieve_and_escape_url,
+)
 from ankisquared.api import bing, forvo, openai
 from ankisquared.api.utils import Suggestion
 
-def update_field(editor: Editor, suggestion: Suggestion):
+
+def update_field(editor: Editor, suggestion: Suggestion, current_field: int):
     """Update the current field with new content and refresh the note.
-    
+
     Args:
         editor: Anki editor instance
         suggestion: Content suggestion to add
     """
-    content = suggestion.to_anki(url_retriever=lambda x: retrieve_and_escape_url(editor, x))
+    content = suggestion.to_anki(
+        url_retriever=lambda x: retrieve_and_escape_url(editor, x)
+    )
 
     if not content:
         showWarning("No content found!")
         return
 
-    editor.note.fields[editor.currentField] = content
+    editor.note.fields[current_field] = content
     editor.loadNote()
+
 
 def did_load_editor(buttons: list, editor: Editor):
     """Initialize editor buttons and actions when editor loads.
-    
+
     Args:
         buttons: List to store button references
         editor: Anki editor instance
     """
     editor.config = Config.from_conf()
 
-    def unified_action(editor: Editor, action_config):
+    def unified_action(editor: Editor, action_config: ButtonConfig):
         """Unified handler for all button actions.
-        
+
         Args:
             editor: Anki editor instance
             action_config: Button configuration
         """
+
+        if not is_valid_field(editor):
+            return
+
+        current_field = editor.currentField
+
         endpoint = action_config.endpoint
         prompt_raw = action_config.prompt
 
@@ -51,9 +68,20 @@ def did_load_editor(buttons: list, editor: Editor):
         fields_dict = dict(zip(field_names, field_values))
 
         query = prompt_raw.format(*field_values, **fields_dict)
+
+        if not query:
+            query, ok = QInputDialog.getText(
+                editor.parentWindow,
+                action_config.name,
+                f"{render_button_as_text(action_config, editor.config)}\n\nEnter your query:",
+                text="",
+            )
+            if not ok or not query:
+                return
+
         config = asdict(editor.config) | asdict(action_config)
 
-        if is_valid_field(editor) and query:
+        if query:
             if endpoint == "Bing":
                 suggestion = bing.get_images(query, **config)
             elif endpoint == "Forvo":
@@ -64,19 +92,18 @@ def did_load_editor(buttons: list, editor: Editor):
                 showWarning(f"Unknown endpoint: {endpoint}")
                 return
 
-            update_field(editor, suggestion)
+            print(f"Updating {current_field} with {suggestion}")
+            update_field(editor, suggestion, current_field)
         elif not query:
             showWarning(f"Invalid query {query}!")
-        elif not is_valid_field(editor):
-            return
 
     def add_button(button_config, editor):
         """Add a button to the editor toolbar.
-        
+
         Args:
             button_config: Button configuration
             editor: Anki editor instance
-            
+
         Returns:
             Button instance
         """
@@ -89,20 +116,20 @@ def did_load_editor(buttons: list, editor: Editor):
             id=f"{button_config.name}_button",
         )
 
-
     # Add settings button
-    buttons.append(editor.addButton(
-        icon=None, #get_icon_path("settings.png"),
-        label="Suggestions...",
-        cmd="openSettings",
-        func=lambda s=editor: generate_config_dialog(s.config),
-        tip="Open suggestion settings",
-        keys="Ctrl+Shift+S",
-        id="suggestions_dropdown_button",
-    ))
+    buttons.append(
+        editor.addButton(
+            icon=None,  # get_icon_path("settings.png"),
+            label="Suggestions...",
+            cmd="openSettings",
+            func=lambda s=editor: generate_config_dialog(s.config),
+            tip="Open suggestion settings",
+            keys="Ctrl+Shift+S",
+            id="suggestions_dropdown_button",
+        )
+    )
 
     # Add configured buttons
 
     for btn_config in editor.config.buttons:
         buttons.append(add_button(btn_config, editor))
-

@@ -34,9 +34,9 @@ def generate_button_config_panel(
     layout = QVBoxLayout()
     widgets = {}
 
-    for field in ["name", "endpoint", "prompt", "icon", "keys"]:
+    for field in ["name", "endpoint", "prompt", "icon", "tip", "keys"]:
         label = QLabel(field.replace("_", " ").capitalize() + ":")
-        layout.addWidget(label) 
+        layout.addWidget(label)
 
         if field == "endpoint":
             widget = QComboBox()
@@ -44,7 +44,13 @@ def generate_button_config_panel(
             widget.setCurrentText(getattr(button_config, field))
         elif field == "icon":
             widget = QComboBox()
-            icons = ["image-search.png", "forvo.png", "example.png", "definition.png", "ipa.png"]
+            icons = [
+                "image-search.png",
+                "forvo.png",
+                "example.png",
+                "definition.png",
+                "ipa.png",
+            ]
             widget.addItems(icons)
             widget.setCurrentText(getattr(button_config, field))
         else:
@@ -75,14 +81,27 @@ def generate_config_panel(
 
     button_configs = config.buttons
     widgets["buttons"] = []
+    tab_buttons = []
 
     for i, btn_conf in enumerate(button_configs):
         btn_widget = QWidget()
         btn_layout, btn_widget_dict = generate_button_config_panel(btn_conf, dialog)
         btn_widget.setLayout(btn_layout)
-        widgets["buttons"].append(btn_widget)
+        widgets["buttons"].append(btn_widget_dict)
+        tab_buttons.append(btn_widget)
 
-    for field_name in ["language", "difficulty", "bing_api_key", "num_images", "openai_api_key", "model", "max_tokens", "temperature", "forvo_api_key"]:
+    for field_name in [
+        "language",
+        "difficulty",
+        "bing_api_key",
+        "num_images",
+        "openai_api_key",
+        "model",
+        "max_tokens",
+        "temperature",
+        "forvo_api_key",
+        "system_prompt",
+    ]:
         field = next(f for f in fields(Config) if f.name == field_name)
         label = QLabel(field.name.replace("_", " ").capitalize() + ":")
         layout.addWidget(label)
@@ -119,7 +138,7 @@ def generate_config_panel(
         layout.addWidget(widget)
         widgets[field.name] = widget
 
-    return layout, widgets
+    return layout, widgets, tab_buttons
 
 
 def generate_config_dialog(config: Config) -> None:
@@ -133,11 +152,13 @@ def generate_config_dialog(config: Config) -> None:
 
     tab_widget = QTabWidget()
     overall_settings_widget = QWidget()
-    overall_settings_layout, widgets = generate_config_panel(config, dialog, tab_widget)
+    overall_settings_layout, widgets, tab_buttons = generate_config_panel(
+        config, dialog, tab_widget
+    )
     overall_settings_widget.setLayout(overall_settings_layout)
     tab_widget.addTab(overall_settings_widget, "Overall")
 
-    for i, btn_widget in enumerate(widgets["buttons"]):
+    for i, btn_widget in enumerate(tab_buttons):
         tab_widget.addTab(btn_widget, f"Button {i + 1}")
 
     layout = QVBoxLayout()
@@ -145,11 +166,16 @@ def generate_config_dialog(config: Config) -> None:
 
     def save_config() -> None:
         """Save the current configuration state."""
+
         def get_value(widget: QWidget) -> Union[str, int, float]:
             if isinstance(widget, QLineEdit):
                 return widget.text()
             elif isinstance(widget, QComboBox):
-                return widget.currentData() if field.name == "language" else widget.currentText()
+                return (
+                    widget.currentData()
+                    if field.name == "language"
+                    else widget.currentText()
+                )
             elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
                 return widget.value()
             return ""

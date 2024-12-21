@@ -5,15 +5,15 @@ from ankisquared.consts import ModelLiteral
 
 OPENAI_API_ENDPOINT = "https://api.openai.com/v1/chat/completions"
 
+
 def get_completion(
     query: str,
     openai_api_key: str,
-    language: str,
-    difficulty: str,
     max_tokens: int,
     temperature: float,
     model: ModelLiteral,
-    **_,
+    system_prompt: str,
+    **kwargs,
 ) -> Suggestion:
     """Generate a completion using OpenAI's API.
 
@@ -40,7 +40,7 @@ def get_completion(
         "messages": [
             {
                 "role": "system",
-                "content": f"You are the world's best language teacher (language: {language}, student's level: {difficulty}).",
+                "content": system_prompt.format(**kwargs),
             },
             {"role": "user", "content": query},
         ],
