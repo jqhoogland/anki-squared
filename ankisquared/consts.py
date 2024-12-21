@@ -9,7 +9,7 @@ ANKI21 = version.startswith("2.1.")
 SYS_ENCODING = sys.getfilesystemencoding()
 ADDON_PATH = os.path.dirname(__file__)
 
-ICONS_PATH = Path(os.path.join(ADDON_PATH, "../icons"))
+ICONS_PATH = Path(os.path.join(ADDON_PATH, "icons"))
 
 # Settings
 DIFFICULTIES = ["A1", "A2", "B1", "B2", "C1", "C2"]

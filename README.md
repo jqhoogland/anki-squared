@@ -56,15 +56,7 @@
 # Clone repository
 git clone https://github.com/jqhoogland/ankisquared.git
 
-# Create symbolic link to Anki addons folder
-## Linux/MacOS
-ln -s /path/to/repo/ankisquared /path/to/Anki2/addons21/ankisquared
-
-## Windows (Run as Administrator)
-mklink /D C:\Users\<username>\AppData\Roaming\Anki2\addons21\ankisquared C:\path\to\repo\ankisquared
-
-# Install dependencies
-pip install -r requirements.txt
+make install
 ```
 
 ## Usage
