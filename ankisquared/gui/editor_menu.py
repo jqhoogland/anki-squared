@@ -71,7 +71,9 @@ def did_load_editor(buttons: list, editor: Editor):
 
         dialog = QInputDialog(editor.parentWindow)
         dialog.setWindowTitle(action_config.name)
-        dialog.setLabelText(f"{render_button_as_text(action_config, editor.config)}\n\nEnter your query:")
+        dialog.setLabelText(
+            f"{render_button_as_text(action_config, editor.config)}\n\nEnter your query:"
+        )
         dialog.setTextValue(query)
         dialog.setMinimumWidth(600)
         dialog.setMinimumHeight(300)

@@ -46,7 +46,9 @@ class Config:
     model: ModelLiteral
     max_tokens: int
     temperature: float
-    system_prompt: str = "You are the world's best language teacher (language: {language}, student's level: {difficulty})."
+    system_prompt: str = (
+        "You are the world's best language teacher (language: {language}, student's level: {difficulty})."
+    )
 
     # Button Configurations
     buttons: List[ButtonConfig] = field(default_factory=list)
@@ -71,12 +73,15 @@ class Config:
             max_tokens=conf.get("max_tokens", 100),
             temperature=conf.get("temperature", 0.7),
             num_images=conf.get("num_images", 3),
-            system_prompt=conf.get("system_prompt", "You are the world's best language teacher (language: {language}, student's level: {difficulty})."),
+            system_prompt=conf.get(
+                "system_prompt",
+                "You are the world's best language teacher (language: {language}, student's level: {difficulty}).",
+            ),
             buttons=button_configs,
         )
         config.cast()
         return config
-    
+
     def reset(self):
         conf = asdict(self.from_conf())
         buttons = [ButtonConfig(**button) for button in conf.pop("buttons")]
@@ -94,7 +99,6 @@ class Config:
             setattr(self, key, value)
 
         self.save_to_conf()
-
 
     def cast(self):
         self.num_images = int(self.num_images)

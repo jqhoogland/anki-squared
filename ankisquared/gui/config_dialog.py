@@ -20,7 +20,9 @@ from ankisquared.config import ButtonConfig, Config, Endpoint
 from ankisquared.consts import DIFFICULTIES, LANGUAGES
 
 
-def generate_general_settings_panel(config: Config, parent: QWidget = None) -> Tuple[QVBoxLayout, Dict[str, QWidget]]:
+def generate_general_settings_panel(
+    config: Config, parent: QWidget = None
+) -> Tuple[QVBoxLayout, Dict[str, QWidget]]:
     """
     Create a layout and widgets for the general (non-button) fields of Config.
     Returns the layout and a dictionary of widget references.
@@ -102,7 +104,7 @@ def generate_button_config_panel(
     button_index: int,
     parent: QWidget = None,
     on_remove=None,
-    on_duplicate=None
+    on_duplicate=None,
 ) -> QWidget:
     """
     Create a QWidget for configuring a single ButtonConfig, including
@@ -153,9 +155,12 @@ def generate_button_config_panel(
     if on_remove:
         remove_button.clicked.connect(lambda: on_remove(button_index, button_config))
     if on_duplicate:
-        duplicate_button.clicked.connect(lambda: on_duplicate(button_index, button_config))
+        duplicate_button.clicked.connect(
+            lambda: on_duplicate(button_index, button_config)
+        )
 
     return widget
+
 
 def get_value(widget):
     if hasattr(widget, "text"):
@@ -182,7 +187,9 @@ def generate_config_dialog(config: Config):
 
     # -- General Tab --
     general_tab = QWidget(dialog)
-    general_layout, general_widgets = generate_general_settings_panel(config, general_tab)
+    general_layout, general_widgets = generate_general_settings_panel(
+        config, general_tab
+    )
     general_tab.setLayout(general_layout)
     top_tab_widget.addTab(general_tab, "General")
 
@@ -197,6 +204,7 @@ def generate_config_dialog(config: Config):
 
     def on_duplicate_button(button_index, duplicate_conf):
         import copy
+
         print(f"Duplicating suggestion button {button_index + 1}...")
         new_button = copy.deepcopy(duplicate_conf)
         config.buttons.append(new_button)
@@ -214,7 +222,7 @@ def generate_config_dialog(config: Config):
                 i,
                 parent=dialog,
                 on_remove=on_remove_button,
-                on_duplicate=on_duplicate_button
+                on_duplicate=on_duplicate_button,
             )
             button_tab_widget.addTab(panel, f"Button {i+1}")
 
@@ -225,24 +233,36 @@ def generate_config_dialog(config: Config):
 
     def on_add_button():
         # Create a default new button
-        new_btn = type(config.buttons[0])(
-            name="New Button",
-            endpoint="",
-            prompt="",
-            icon="",
-            label="",
-            tip="",
-            keys=""
-        ) if config.buttons else None
+        new_btn = (
+            type(config.buttons[0])(
+                name="New Button",
+                endpoint="",
+                prompt="",
+                icon="",
+                label="",
+                tip="",
+                keys="",
+            )
+            if config.buttons
+            else None
+        )
         if new_btn is None:
             # If there are no existing buttons to reference, create one from scratch or your default
             from dataclasses import make_dataclass
+
             # For demonstration, just use a "bare" ButtonConfig
             # (replace with real ButtonConfig class as in your code)
             ButtonConfig = make_dataclass(
-                "ButtonConfig", 
-                [("name", str), ("endpoint", str), ("prompt", str),
-                 ("icon", str), ("label", str), ("tip", str), ("keys", str)]
+                "ButtonConfig",
+                [
+                    ("name", str),
+                    ("endpoint", str),
+                    ("prompt", str),
+                    ("icon", str),
+                    ("label", str),
+                    ("tip", str),
+                    ("keys", str),
+                ],
             )
             new_btn = ButtonConfig("New Button", "", "", "", "", "", "")
 
@@ -281,9 +301,6 @@ def generate_config_dialog(config: Config):
             if field_info.name == "buttons":
                 for i in range(button_tab_widget.count() - 1):
                     tab_widget = button_tab_widget.widget(i)
-                    # tab_widget = tab_widget.layout().itemAt(0).widget()
-                    print(f"Tab {i} widget is: {repr(tab_widget)}")
-                    print(f"Has 'fields_dict'? {hasattr(tab_widget, 'fields_dict')}")
 
                     # Check if this tab has fields_dict
                     if not hasattr(tab_widget, "fields_dict"):
@@ -293,14 +310,12 @@ def generate_config_dialog(config: Config):
                     for field_name, field_widget in tab_widget.fields_dict.items():
                         setattr(button_conf, field_name, get_value(field_widget))
 
-
             if field_info.name in general_widgets:
                 w = general_widgets[field_info.name]
 
-                config.__dict__[field_info.name] = get_value(w) 
+                config.__dict__[field_info.name] = get_value(w)
 
-        config.save_to_conf() 
-                
+        config.save_to_conf()
 
     btn_layout = QHBoxLayout()
     ok_btn = QPushButton("OK")
