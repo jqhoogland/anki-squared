@@ -22,7 +22,7 @@ def get_pronunciations(query: str, forvo_api_key: str, language: str, **_) -> li
         data = response.json()
         return [item["pathmp3"] for item in data["items"]]
 
-    showWarning("Forvo API request failed!")
+    print("Forvo API request failed!")
     print(response.text)
     
     return []

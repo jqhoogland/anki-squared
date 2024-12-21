@@ -161,4 +161,4 @@ def generate_config_dialog(config: Config) -> None:
 
     dialog.setLayout(layout)
     dialog.resize(500, 800)
-    dialog.exec_()
+    dialog.exec()
