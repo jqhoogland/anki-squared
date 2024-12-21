@@ -69,15 +69,14 @@ def did_load_editor(buttons: list, editor: Editor):
 
         query = prompt_raw.format(*field_values, **fields_dict)
 
-        if not query:
-            query, ok = QInputDialog.getText(
-                editor.parentWindow,
-                action_config.name,
-                f"{render_button_as_text(action_config, editor.config)}\n\nEnter your query:",
-                text="",
-            )
-            if not ok or not query:
-                return
+        query, ok = QInputDialog.getText(
+            editor.parentWindow,
+            action_config.name,
+            f"{render_button_as_text(action_config, editor.config)}\n\nEnter your query:",
+            text=query,
+        )
+        if not ok or not query:
+            return
 
         config = asdict(editor.config) | asdict(action_config)
 

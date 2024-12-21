@@ -53,9 +53,6 @@ class Config:
     @classmethod
     def from_conf(cls):
         conf = mw.addonManager.getConfig("ankisquared") or {}
-        print("Loaded config:")
-        pp(conf)
-
         button_configs = []
 
         for button_conf in conf.get("buttons", None) or []:

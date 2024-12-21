@@ -11,6 +11,7 @@ from aqt.qt import (
     QPushButton,
     QSpinBox,
     QTabWidget,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -131,6 +132,9 @@ def generate_config_panel(
             widget = QDoubleSpinBox()
             widget.setRange(0.0, 5.0)
             widget.setValue(getattr(config, field.name))
+        elif field.name == "system_prompt":
+            widget = QTextEdit()
+            widget.setText(getattr(config, field.name))
         else:
             widget = QLineEdit()
             widget.setText(str(getattr(config, field.name)))

@@ -16,6 +16,10 @@
     - [Installation](#installation)
   - [Usage](#usage)
   - [Configuration](#configuration)
+    - [Obtaining API Keys](#obtaining-api-keys)
+      - [Bing Image Search API](#bing-image-search-api)
+      - [Forvo API](#forvo-api)
+      - [OpenAI API](#openai-api)
   - [Contributing](#contributing)
   - [License](#license)
 
@@ -86,6 +90,29 @@ pip install -r requirements.txt
    }
    ```
 
+### Obtaining API Keys
+
+#### Bing Image Search API
+1. Sign up for a [Microsoft Azure account](https://azure.microsoft.com/free/)
+2. [Create a Bing Images Search resource in the Azure portal](https://aka.ms/bingapisignup) and select the Free F1 tier.
+3. Go to "Manage keys" in your resource
+4. Copy either Key 1 or Key 2 as your `bing_api_key`
+
+#### Forvo API
+1. Register for a [Forvo account](https://api.forvo.com/plans-and-pricing/)
+2. Subscribe to an API plan (they offer a free trial)
+3. Get your API key from your [Forvo account dashboard](https://api.forvo.com/account/)
+4. Use this as your `forvo_api_key`
+
+#### OpenAI API
+1. Create an [OpenAI account](https://platform.openai.com/signup)
+2. Go to [API Keys](https://platform.openai.com/api-keys)
+3. Click "Create new secret key"
+4. Copy the key immediately (you won't be able to see it again)
+5. Use this as your `openai_api_key`
+
+Note: Keep your API keys secure and never share them publicly. The add-on stores them locally in your Anki configuration.
+
 ## Contributing
 
 - [User Guide](docs/user-guide.md)
@@ -96,9 +123,3 @@ pip install -r requirements.txt
 ## License
 
 MIT License - see [LICENSE](LICENSE) file
-
----
-
-<p align="center">
-  Made with ❤️ for the Anki community
-</p>
