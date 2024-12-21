@@ -1,47 +1,115 @@
-# Anki<sup>2</sup>
-An Anki add-on that augments the card creation process by integrating with the Bing, Forvo, and OpenAI APIs to provide images, pronunciations, and example sentences respectively for your cards.
+# Anki²
 
-<!-- ![Anki Card Editor Screenshot](path_to_screenshot_here.png) -->
+<!-- [![PyPI version](https://badge.fury.io/py/ankisquared.svg)](https://badge.fury.io/py/ankisquared) -->
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+<!-- [![Downloads](https://static.pepy.tech/personalized-badge/ankisquared?period=total&units=international_system&left_color=black&right_color=orange&left_text=Downloads)](https://pepy.tech/project/ankisquared) -->
+[![Anki: 2.1.65+](https://img.shields.io/badge/Anki-2.1.65%2B-blue.svg)](https://apps.ankiweb.net)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
+> An Anki add-on that enhances card creation by integrating external APIs to provide rich content for your flashcards.
+
+<!-- ![Demo](docs/assets/demo.gif) -->
+
+- [Anki²](#anki)
+  - [Features](#features)
+  - [Installation](#installation)
+    - [From AnkiWeb](#from-ankiweb)
+    - [From Source](#from-source)
+  - [Usage](#usage)
+  - [Configuration](#configuration)
+  - [Development](#development)
+  - [Contributing](#contributing)
+  - [License](#license)
 
 ## Features
 
-- **Bing Images**: Automatically fetch relevant images for your cards.
-- **Forvo Pronunciations**: Get accurate pronunciations for words or phrases.
-- **OpenAI Sentences**: Generate illustrative sentences using the power of OpenAI.
+🖼️ **Images**
+- Fetch relevant images from Bing Image Search
+- Automatically download and embed in cards
+- Configurable number of images per card
+
+🗣️ **Pronunciations**
+- Get native speaker pronunciations from Forvo
+- Support for 40+ languages
+- High-quality MP3 audio files
+
+🤖 **AI-Powered Content**
+- Generate example sentences using OpenAI
+- Create concise definitions
+- Generate IPA transcriptions
+- Adjustable difficulty levels (A1-C2)
 
 ## Installation
 
-1. Download the add-on from [AnkiWeb's add-on page](your_ankiweb_addon_link_here) or from the releases section in this repository.
-2. Install the add-on to Anki.
-3. Restart Anki.
+### From AnkiWeb
+
+1. Open Anki
+2. Tools → Add-ons → Get Add-ons...
+3. Paste code: `[addon_code]` <!-- TODO: Add actual addon code -->
+4. Restart Anki
+
+### From Source
+
+```bash
+# Clone repository
+git clone https://github.com/jqhoogland/ankisquared.git
+
+# Create symbolic link to Anki addons folder
+## Linux/MacOS
+ln -s /path/to/repo/ankisquared /path/to/Anki2/addons21/ankisquared
+
+## Windows (Run as Administrator)
+mklink /D C:\Users\<username>\AppData\Roaming\Anki2\addons21\ankisquared C:\path\to\repo\ankisquared
+
+# Install dependencies
+pip install -r requirements.txt
+```
 
 ## Usage
 
-1. Open Anki and navigate to the card editor.
-2. Type in your desired query or word in the card's Front section.
-3. Click on the respective buttons for images, pronunciations, or sentences to fetch and insert the data into your card fields.
-4. Use the settings button to access the add-on's configuration panel.
+1. Open Anki and navigate to the card editor
+2. Type your word/phrase in the front field
+3. Use the toolbar buttons or keyboard shortcuts:
+   - `Ctrl+Shift+1`: Add images
+   - `Ctrl+Shift+2`: Add pronunciation
+   - `Ctrl+Shift+3`: Add example sentences
+   - `Ctrl+Shift+4`: Add definition
+   - `Ctrl+Shift+5`: Add IPA
 
 ## Configuration
 
-1. **Bing API**: Enter your Bing API key to enable image searching. You can get one from [Microsoft's Azure Portal](https://portal.azure.com/).
-2. **Forvo API**: Insert your Forvo API key to enable pronunciation fetching. Sign up for one at [Forvo's API page](https://api.forvo.com/).
-3. **OpenAI API**: Insert your OpenAI API key to enable sentence generation. More details at [OpenAI's official site](https://www.openai.com/).
-
-## Limitations and Considerations
-
-- Ensure you have a stable internet connection when using the add-on to fetch resources.
-- Respect the terms of service for all integrated APIs.
-- Be mindful of the potential costs associated with frequent API calls.
+1. Tools → Add-ons → Anki² → Config
+2. Configure your API keys:
+   ```json
+   {
+     "bing_api_key": "your-bing-api-key",
+     "forvo_api_key": "your-forvo-api-key",
+     "openai_api_key": "your-openai-api-key"
+   }
+   ```
 
 ## Development
 
-If you're interested in contributing to this project, please see the `CONTRIBUTING.md` file.
+Hot reload development:
+```bash
+# Make code changes
+# Press Ctrl+Shift+R in Anki to reload add-ons
 
-## Feedback and Support
+# Debug using:
+from aqt.utils import showInfo
+showInfo("Debug message")
+```
 
-For any questions, feedback, or support, please [create an issue](github_issue_link_here) on this repository or contact the developer directly.
+## Contributing
+
+Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details.
 
 ## License
 
-This project is licensed under the MIT License - see the `LICENSE` file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+<p align="center">
+  Made with ❤️ for the Anki community
+</p>
