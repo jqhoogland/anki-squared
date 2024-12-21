@@ -1,4 +1,3 @@
-
 import sys
 import types
 from dataclasses import fields
@@ -6,17 +5,29 @@ from typing import Annotated, Literal, get_args, get_origin
 
 from aqt import mw
 from aqt.editor import Editor
-from aqt.qt import (QComboBox, QDialog, QDoubleSpinBox, QHBoxLayout, QLabel,
-                    QLineEdit, QPushButton, QSpinBox, QTabWidget, QVBoxLayout,
-                    QWidget)
+from aqt.qt import (
+    QComboBox,
+    QDialog,
+    QDoubleSpinBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QSpinBox,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 from ankisquared.config import ButtonConfig, Config
 from ankisquared.consts import DIFFICULTIES, LANGUAGES
 
 
-def generate_button_config_panel(button_config: ButtonConfig, parent: QWidget = None) -> QVBoxLayout:
+def generate_button_config_panel(
+    button_config: ButtonConfig, parent: QWidget = None
+) -> QVBoxLayout:
     layout = QVBoxLayout()
-    
+
     widgets = {}
 
     for field in fields(ButtonConfig):
@@ -34,9 +45,11 @@ def generate_button_config_panel(button_config: ButtonConfig, parent: QWidget = 
     return layout, widgets
 
 
-def generate_config_panel(config: Config, dialog: QDialog, tab_widget: QTabWidget) -> QVBoxLayout:
+def generate_config_panel(
+    config: Config, dialog: QDialog, tab_widget: QTabWidget
+) -> QVBoxLayout:
     layout = QVBoxLayout()
-    
+
     widgets = {}
 
     for field in fields(Config):
@@ -48,11 +61,13 @@ def generate_config_panel(config: Config, dialog: QDialog, tab_widget: QTabWidge
 
             for i, btn_conf in enumerate(button_configs):
                 btn_widget = QWidget()
-                btn_layout, btn_widget_dict = generate_button_config_panel(btn_conf, dialog)
+                btn_layout, btn_widget_dict = generate_button_config_panel(
+                    btn_conf, dialog
+                )
                 btn_widget.setLayout(btn_layout)
                 tab_widget.addTab(btn_widget, f"Button {i + 1}")
                 widgets["buttons"].append(btn_widget_dict)
-                
+
             continue
 
         label = QLabel(field.name.replace("_", " ").capitalize() + ":")
@@ -64,9 +79,9 @@ def generate_config_panel(config: Config, dialog: QDialog, tab_widget: QTabWidge
             layout.addWidget(widget)
             widgets[field.name] = widget
             continue
-        
+
         # Use metadata for Annotated
-        metadata = getattr(field.type, '__metadata__', None)
+        metadata = getattr(field.type, "__metadata__", None)
         if metadata and "options" in metadata[0]:
             options = metadata[0]["options"]
 

@@ -20,12 +20,9 @@ from ankisquared.api import images, pronunciations, sentences
 
 NUM_IMAGES = 3
 
+
 def get_icon_path(icon_name: str) -> str:
-    return str(ICONS_PATH/icon_name)
-
-
-def get_word(editor: Editor) -> str:
-    return editor.note.fields[0]
+    return str(ICONS_PATH / icon_name)
 
 
 def is_valid_field(editor: Editor) -> bool:
@@ -36,44 +33,11 @@ def is_valid_field(editor: Editor) -> bool:
         return False
 
 
-# def add_images(editor: Editor, urls: list[str]):
-#     if urls:
-#         urls = urls[:max(NUM_IMAGES, len(urls))]
-#         links = []
-
-#         for url in urls:
-#             fname = editor._retrieveURL(url)    
-#             links.append(f"<img src=\"{html.escape(fname, quote=False)}\" />")
-
-#         editor.note.fields[editor.currentField] = "<br />".join(links)
-#         editor.loadNote()
-#     else:
-#         showWarning("No images found!")        
-
-
-# def add_pronunciation(editor: Editor, url: str):
-#     if url:
-#         fname = editor._retrieveURL(url)
-#         link = f"[sound:{html.escape(fname, quote=False)}]"
-#         editor.note.fields[editor.currentField] = link
-#         editor.loadNote()
-#     else:
-#         showWarning("No pronunciations found!")
-
-
-# def add_sentences(editor: Editor, sentence: str):
-#     if sentence:
-#         editor.note.fields[editor.currentField] = sentence
-#         editor.loadNote()
-#     else:
-#         showWarning("No sentences found!")
-
-
 def clean(s: str) -> str:
     return BeautifulSoup(s, "html.parser").get_text()
 
 
-def did_load_editor(buttons: list, editor: Editor): 
+def did_load_editor(buttons: list, editor: Editor):
     editor.config = Config.from_conf()
 
     def unified_action(editor: Editor, action_config):
@@ -81,7 +45,7 @@ def did_load_editor(buttons: list, editor: Editor):
         endpoint = action_config.endpoint
         prompt_raw = action_config.prompt
 
-        field_names = [field['name'] for field in editor.note.model()['flds']]
+        field_names = [field["name"] for field in editor.note.model()["flds"]]
         field_values = [clean(f) for f in editor.note.fields]
         fields_dict = dict(zip(field_names, field_values))
 
@@ -94,11 +58,11 @@ def did_load_editor(buttons: list, editor: Editor):
             elif endpoint == "Forvo":
                 suggestion = pronunciations.get_pronunciations(query, **config)
             elif endpoint == "OpenAI":
-                suggestion = sentences.get_sentence(query, **config) 
+                suggestion = sentences.get_sentence(query, **config)
             else:
                 showWarning(f"Unknown endpoint: {endpoint}")
                 return
-            
+
             update_field(editor, suggestion)
         elif not query:
             showWarning(f"Invalid query {query}!")
@@ -112,7 +76,7 @@ def did_load_editor(buttons: list, editor: Editor):
             func=lambda s=editor: unified_action(s, button_config),
             tip=button_config.tip,
             keys=button_config.keys,
-            id=f"{button_config.name}_button" 
+            id=f"{button_config.name}_button",
         )
 
     for btn_config in editor.config.buttons:
@@ -126,23 +90,24 @@ def did_load_editor(buttons: list, editor: Editor):
         func=lambda s=editor: generate_config_dialog(s.config),
         tip="Open suggestion settings",
         keys="Ctrl+Shift+S",
-        id="suggestions_dropdown_button"
+        id="suggestions_dropdown_button",
     )
     buttons.append(suggestions_settings_btn)
 
 
 def update_field(editor: Editor, suggestion: Suggestion):
     """Update the current field with new content and refresh the note."""
+
     def url_retriever(x: str) -> str:
         url = editor._retrieveURL(x)
         return html.escape(url, quote=False)
-    
+
     content = suggestion.to_anki(url_retriever=url_retriever)
     print(suggestion)
 
     if not content:
         showWarning("No content found!")
         return
-                
+
     editor.note.fields[editor.currentField] = content
     editor.loadNote()

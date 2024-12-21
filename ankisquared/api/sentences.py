@@ -12,7 +12,7 @@ def get_sentence(
     max_tokens: int,
     temperature: float,
     model: ModelLiteral,
-    **_
+    **_,
 ) -> Suggestion:
     """Generate a language learning sentence using OpenAI's API.
 
@@ -33,7 +33,7 @@ def get_sentence(
         "Authorization": f"Bearer {openai_api_key}",
         "Content-Type": "application/json",
     }
-    
+
     data = {
         "model": model,
         "messages": [
@@ -46,24 +46,27 @@ def get_sentence(
         "max_tokens": max_tokens,
         "temperature": temperature,
     }
-    
+
     try:
         response = requests.post(
             "https://api.openai.com/v1/chat/completions",
             headers=headers,
             json=data,
         )
-        
+
         if response.status_code == 200:
             choices = response.json().get("choices", [])
             if choices:
-                return Suggestion(type="text", content=choices[0].get("message", {}).get("content", "").strip())
+                return Suggestion(
+                    type="text",
+                    content=choices[0].get("message", {}).get("content", "").strip(),
+                )
         else:
             showWarning("OpenAI API request failed!")
             print(f"Error: {response.text}")
-            
+
     except requests.exceptions.RequestException as e:
         showWarning(f"Network error: {str(e)}")
         print(f"Request failed: {str(e)}")
-    
+
     return Suggestion(type="text", content="")

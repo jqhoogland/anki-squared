@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 from typing import Dict, Iterator, Optional
 
-import requests 
+import requests
 from aqt.utils import showWarning
 from ankisquared.api.utils import Suggestion
 
@@ -27,7 +27,7 @@ def create_session(headers=None, proxies=None, timeout=10):
     if proxies:
         session.proxies.update(proxies)
     session.timeout = timeout
-    
+
     try:
         yield session
     finally:
@@ -38,7 +38,7 @@ def search_bing_images(
     session: requests.Session,
     query: str,
     subscription_key: str,
-    mkt: str = 'en-US',
+    mkt: str = "en-US",
     num_results: int = 10,
 ) -> Iterator[Dict[str, Optional[str]]]:
     """Search for images using Bing's Image Search API.
@@ -54,16 +54,16 @@ def search_bing_images(
         dict: Image search result containing title, image URL, thumbnail URL, and source page URL
     """
     headers = {
-        'Ocp-Apim-Subscription-Key': subscription_key,
+        "Ocp-Apim-Subscription-Key": subscription_key,
     }
     params = {
-        'q': query,
-        'mkt': mkt,
-        'count': num_results,
+        "q": query,
+        "mkt": mkt,
+        "count": num_results,
     }
-    
+
     response = session.get(BING_API_ENDPOINT, headers=headers, params=params)
-    
+
     if response.status_code != 200:
         showWarning("Bing API request failed!")
         return
@@ -79,11 +79,7 @@ def search_bing_images(
 
 
 def get_images(
-    keywords: str,
-    bing_api_key: str,
-    language: str,
-    num_images: int,
-    **_
+    keywords: str, bing_api_key: str, language: str, num_images: int, **_
 ) -> Suggestion:
     """Get image thumbnails from Bing Image Search.
 
@@ -98,16 +94,18 @@ def get_images(
         list: List of thumbnail URLs
     """
     with create_session() as session:
-        urls = [r["thumbnail"] for r in search_bing_images(
-            session=session,
-            query=keywords,
-            subscription_key=bing_api_key,
-            mkt=language,
-            num_results=num_images,
-        )]
+        urls = [
+            r["thumbnail"]
+            for r in search_bing_images(
+                session=session,
+                query=keywords,
+                subscription_key=bing_api_key,
+                mkt=language,
+                num_results=num_images,
+            )
+        ]
 
         if len(urls) > num_images:
             urls = urls[:num_images]
 
         return Suggestion(type="image", urls=urls)
-

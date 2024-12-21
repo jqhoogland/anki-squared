@@ -48,7 +48,7 @@ LANGUAGES = {
     "Ukrainian": "uk",
     "Urdu": "ur",
     "Vietnamese": "vi",
-    "Welsh": "cy"
+    "Welsh": "cy",
 }
 
 MODELS = [
@@ -107,9 +107,8 @@ MODELS = [
     "gpt-3.5-turbo-0613",
     "davinci-similarity",
     "gpt-3.5-turbo",
-    "gpt-4-0613"
+    "gpt-4-0613",
 ]
-
 
 
 ModelLiteral = Literal[
@@ -168,5 +167,5 @@ ModelLiteral = Literal[
     "gpt-3.5-turbo-0613",
     "davinci-similarity",
     "gpt-3.5-turbo",
-    "gpt-4-0613"
+    "gpt-4-0613",
 ]
