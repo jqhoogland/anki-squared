@@ -2,6 +2,7 @@ import requests
 
 from ankisquared.api.utils import Suggestion
 
+FORVO_API_ENDPOINT = "https://apifree.forvo.com/action/word-pronunciations/"
 
 def get_pronunciations(
     query: str, forvo_api_key: str, language: str, max_pronunciations: int = 1, **_
@@ -27,7 +28,7 @@ def get_pronunciations(
     }
 
     base_url = (
-        f"https://apifree.forvo.com/action/word-pronunciations/format/json/"
+        f"{FORVO_API_ENDPOINT}/format/json/"
         f"word/{query}/language/{language}/order/rate-desc/key/{forvo_api_key}/"
     )
 

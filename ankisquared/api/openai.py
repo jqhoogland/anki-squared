@@ -3,8 +3,9 @@ from ankisquared.api.utils import Suggestion
 from aqt.utils import showWarning
 from ankisquared.consts import ModelLiteral
 
+OPENAI_API_ENDPOINT = "https://api.openai.com/v1/chat/completions"
 
-def get_sentence(
+def get_completion(
     query: str,
     openai_api_key: str,
     language: str,
@@ -14,7 +15,7 @@ def get_sentence(
     model: ModelLiteral,
     **_,
 ) -> Suggestion:
-    """Generate a language learning sentence using OpenAI's API.
+    """Generate a completion using OpenAI's API.
 
     Args:
         query (str): The prompt to generate a sentence from
