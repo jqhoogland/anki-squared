@@ -71,7 +71,9 @@ def did_load_editor(buttons: list, editor: Editor):
 
         dialog = QInputDialog(editor.parentWindow)
         dialog.setWindowTitle(action_config.name)
-        dialog.setLabelText(f"{render_button_as_text(action_config, editor.config)}\n\nEnter your query:")
+        dialog.setLabelText(
+            f"{render_button_as_text(action_config, editor.config)}\n\nEnter your query:"
+        )
         dialog.setTextValue(query)
         dialog.setMinimumWidth(600)
         dialog.setMinimumHeight(300)
@@ -112,8 +114,16 @@ def did_load_editor(buttons: list, editor: Editor):
         Returns:
             Button instance
         """
+
+        icon = get_icon_path(button_config.icon) if button_config.icon else None
+        label = button_config.label
+
+        if not icon and not label:
+            label = f"Suggest {button_config.name}"
+
         return editor.addButton(
-            icon=get_icon_path(button_config.icon),
+            icon=icon,
+            label=label,
             func=lambda s=editor: unified_action(s, button_config),
             cmd=button_config.cmd,
             tip=button_config.tip,
