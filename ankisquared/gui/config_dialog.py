@@ -74,18 +74,18 @@ def generate_general_settings_panel(config: Config, parent: QWidget = None) -> T
         elif field.type == int:
             widget = QSpinBox()
             widget.setRange(0, 1000)
-            widget.setValue(getattr(config, field.name))
+            widget.setValue(int(getattr(config, field.name)))
 
         # If field type is float
         elif field.type == float:
             widget = QDoubleSpinBox()
             widget.setRange(0.0, 5.0)
-            widget.setValue(getattr(config, field.name))
+            widget.setValue(float(getattr(config, field.name)))
 
         # If field name is "system_prompt" (a multi-line field)
         elif field.name == "system_prompt":
             widget = QTextEdit()
-            widget.setText(getattr(config, field.name))
+            widget.setText(str(getattr(config, field.name)))
 
         else:
             widget = QLineEdit()
@@ -99,6 +99,7 @@ def generate_general_settings_panel(config: Config, parent: QWidget = None) -> T
 
 def generate_button_config_panel(
     button_config: ButtonConfig,
+    button_index: int,
     parent: QWidget = None,
     on_remove=None,
     on_duplicate=None
@@ -138,6 +139,7 @@ def generate_button_config_panel(
         layout.addWidget(field_widget)
         fields_dict[field_name] = field_widget
 
+    widget.fields_dict = fields_dict
     # Add buttons for removing or duplicating this button
     button_layout = QHBoxLayout()
     remove_button = QPushButton("Remove", widget)
@@ -147,108 +149,83 @@ def generate_button_config_panel(
     button_layout.addWidget(duplicate_button)
     layout.addLayout(button_layout)
 
-    # Wire up remove/duplicate signals if callbacks provided
+    # Wire up callbacks
     if on_remove:
-        remove_button.clicked.connect(lambda: on_remove(button_config))
+        remove_button.clicked.connect(lambda: on_remove(button_index, button_config))
     if on_duplicate:
-        duplicate_button.clicked.connect(lambda: on_duplicate(button_config))
+        duplicate_button.clicked.connect(lambda: on_duplicate(button_index, button_config))
 
     return widget
 
-
-class ButtonTabWidget(QTabWidget):
-    """
-    A QTabWidget subclass that includes a "+" tab for adding new buttons.
-    """
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        # Add the "+" tab at the end
-        self.plus_tab_index = self.addTab(QWidget(), "+")
-
-    def mouseReleaseEvent(self, event):
-        # Check if the clicked tab is the "+" tab
-        index = self.tabBar().tabAt(event.pos())
-        if index == self.plus_tab_index:
-            # Trigger some signal or callback to create a new button config
-            self.parent().on_add_button()
-        super().mouseReleaseEvent(event)
-
-    def update_plus_tab_position(self):
-        # Ensures "+" tab is always at the end (optional if you want dynamic re-ordering)
-        current_count = self.count()
-        if self.plus_tab_index != current_count - 1:
-            widget = self.widget(self.plus_tab_index)
-            text = self.tabText(self.plus_tab_index)
-            self.removeTab(self.plus_tab_index)
-            self.plus_tab_index = self.addTab(widget, text)
+def get_value(widget):
+    if hasattr(widget, "text"):
+        return widget.text()
+    elif hasattr(widget, "toPlainText"):
+        return widget.toPlainText()
+    elif hasattr(widget, "currentText"):
+        return widget.currentText()
+    elif hasattr(widget, "currentIndex"):
+        return widget.currentIndex()
+    elif hasattr(widget, "value"):
+        return widget.value()
+    else:
+        raise ValueError(f"No value attribute found for widget {widget}")
 
 
-def generate_config_dialog(config: Config) -> None:
-    """
-    Create and show the configuration dialog with:
-      - A tab for general (non-button) settings
-      - A separate QTabWidget for each button configuration,
-        plus a "+" tab for adding new buttons
-    """
-
+def generate_config_dialog(config: Config):
     dialog = QDialog()
     dialog.setWindowTitle("Settings")
     main_layout = QVBoxLayout(dialog)
 
-    # -- General Settings Tab --
+    # Create a top-level tab widget (1) for General / (2) for Buttons
+    top_tab_widget = QTabWidget(dialog)
+
+    # -- General Tab --
     general_tab = QWidget(dialog)
     general_layout, general_widgets = generate_general_settings_panel(config, general_tab)
     general_tab.setLayout(general_layout)
+    top_tab_widget.addTab(general_tab, "General")
 
-    # -- Button Tabs --
-    # Use a custom widget with a "+" tab
-    button_tab_widget = ButtonTabWidget(dialog)
+    # -- Button Tab Widget --
+    button_tab_widget = QTabWidget(dialog)
+    # We'll refresh the tabs in a function to keep them up-to-date
 
-    # We'll keep references to each button widget and a function to refresh them
+    def on_remove_button(button_index, button_conf):
+        print(f"Removing suggestion button {button_index + 1}...")
+        config.buttons.pop(button_index)
+        refresh_button_tabs()
+
+    def on_duplicate_button(button_index, duplicate_conf):
+        import copy
+        print(f"Duplicating suggestion button {button_index + 1}...")
+        new_button = copy.deepcopy(duplicate_conf)
+        config.buttons.append(new_button)
+        refresh_button_tabs()
+
     def refresh_button_tabs():
-        # 1. Remove all tabs, including "+"
+        # Remove all tabs
         while button_tab_widget.count() > 0:
             button_tab_widget.removeTab(0)
 
-        # 2. Re-insert each button in config.buttons
+        # Add one tab per ButtonConfig
         for i, btn_conf in enumerate(config.buttons):
-            def on_remove_button(removed_conf):
-                config.buttons.remove(removed_conf)
-                refresh_button_tabs()
-
-            def on_duplicate_button(duplicate_conf):
-                import copy
-                new_button_config = copy.deepcopy(duplicate_conf)
-                config.buttons.append(new_button_config)
-                refresh_button_tabs()
-
             panel = generate_button_config_panel(
                 btn_conf,
+                i,
                 parent=dialog,
                 on_remove=on_remove_button,
                 on_duplicate=on_duplicate_button
             )
-            button_tab_widget.addTab(panel, f"Button {i + 1}")
+            button_tab_widget.addTab(panel, f"Button {i+1}")
 
-        # 3. Add the "+" tab last
-        plus_panel = QWidget() 
-        # Optionally store it if you need to detect clicks differently 
-        plus_tab_index = button_tab_widget.addTab(plus_panel, "+")
-        button_tab_widget.plus_tab_index = plus_tab_index
+        # Lastly, add the "+" tab and store its index
+        plus_panel = QWidget()
+        plus_index = button_tab_widget.addTab(plus_panel, "+")
+        button_tab_widget.setCurrentIndex(0)  # Show the first button if it exists
 
-        # 4. If we have any buttons, select the first button tab
-        if config.buttons:
-            button_tab_widget.setCurrentIndex(0)
-        else:
-            # If there are no buttons, the "+" tab will be index 0
-            button_tab_widget.setCurrentIndex(0)
-
-
-    # Provide a method to handle adding a new button
     def on_add_button():
-        # Create a new ButtonConfig
-        new_btn_conf = ButtonConfig(
+        # Create a default new button
+        new_btn = type(config.buttons[0])(
             name="New Button",
             endpoint="",
             prompt="",
@@ -256,74 +233,83 @@ def generate_config_dialog(config: Config) -> None:
             label="",
             tip="",
             keys=""
-        )
-        config.buttons.append(new_btn_conf)
+        ) if config.buttons else None
+        if new_btn is None:
+            # If there are no existing buttons to reference, create one from scratch or your default
+            from dataclasses import make_dataclass
+            # For demonstration, just use a "bare" ButtonConfig
+            # (replace with real ButtonConfig class as in your code)
+            ButtonConfig = make_dataclass(
+                "ButtonConfig", 
+                [("name", str), ("endpoint", str), ("prompt", str),
+                 ("icon", str), ("label", str), ("tip", str), ("keys", str)]
+            )
+            new_btn = ButtonConfig("New Button", "", "", "", "", "", "")
+
+        config.buttons.append(new_btn)
         refresh_button_tabs()
 
-    # Attach this method to the custom widget
-    button_tab_widget.parent().on_add_button = on_add_button
+        # Switch to the newly created tab (second to last tab is the new button):
+        if button_tab_widget.count() > 1:
+            button_tab_widget.setCurrentIndex(button_tab_widget.count() - 2)
 
-    # Initial population of button tabs
+    # Connect the built-in signal tabBarClicked to detect clicks on the “+” tab
+    def on_tab_bar_clicked(idx):
+        # If the user clicked the last tab, that is the “+” tab
+        if idx == button_tab_widget.count() - 1:
+            on_add_button()
+
+    button_tab_widget.tabBarClicked.connect(on_tab_bar_clicked)
+
+    # Populate the tabs initially
     refresh_button_tabs()
 
-    # Combine tabs into a QTabWidget: one tab for general, one container for button_tab_widget
-    full_tab_widget = QTabWidget(dialog)
-    full_tab_widget.addTab(general_tab, "General")
+    # Wrap button_tab_widget in its own tab on top_tab_widget
+    buttons_outer = QWidget(dialog)
+    outer_layout = QVBoxLayout(buttons_outer)
+    outer_layout.addWidget(button_tab_widget)
+    buttons_outer.setLayout(outer_layout)
 
-    # Wrap the button_tab_widget in a simple QWidget so we can add it as a tab
-    button_panel = QWidget(dialog)
-    panel_layout = QVBoxLayout(button_panel)
-    panel_layout.addWidget(button_tab_widget)
-    button_panel.setLayout(panel_layout)
-    full_tab_widget.addTab(button_panel, "Profiles")
+    top_tab_widget.addTab(buttons_outer, "Buttons")
 
-    main_layout.addWidget(full_tab_widget)
+    main_layout.addWidget(top_tab_widget)
 
-    # -- Save/Cancel Buttons --
+    # -- Save/Cancel --
     def save_config():
-        """
-        Gather values from the general widgets and from each button tab.
-        """
-        # Update general fields
-        for field in fields(Config):
-            if field.name == "buttons":
-                continue
-            if field.name in general_widgets:
-                widget = general_widgets[field.name]
-                if isinstance(widget, QLineEdit):
-                    setattr(config, field.name, widget.text())
-                elif isinstance(widget, QComboBox):
-                    # Some combos store data in currentData
-                    setattr(config, field.name, widget.currentData() or widget.currentText())
-                elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
-                    setattr(config, field.name, widget.value())
-                elif isinstance(widget, QTextEdit):
-                    setattr(config, field.name, widget.toPlainText())
+        # Update config fields from general widgets
+        for field_info in fields(config.__class__):
+            if field_info.name == "buttons":
+                for i in range(button_tab_widget.count() - 1):
+                    tab_widget = button_tab_widget.widget(i)
+                    # tab_widget = tab_widget.layout().itemAt(0).widget()
+                    print(f"Tab {i} widget is: {repr(tab_widget)}")
+                    print(f"Has 'fields_dict'? {hasattr(tab_widget, 'fields_dict')}")
 
-        # Update button fields (read them from each tab’s widgets)
-        # Because we rebuild the button panels dynamically, we already store changes
-        # in the QLineEdits, combos, etc. You can do a final read here if needed.
-        # If you want them to auto-update, connect signals or do a final pass here.
+                    # Check if this tab has fields_dict
+                    if not hasattr(tab_widget, "fields_dict"):
+                        continue  # Skip any tabs without it
 
-        # Example of final pass:
-        # for i in range(button_tab_widget.count() - 1):
-        #    btn_widget = button_tab_widget.widget(i)
-        #    # If we kept a reference to the fields_dict, we'd read them here
-        #    # and set them to config.buttons[i].
+                    button_conf = config.buttons[i]
+                    for field_name, field_widget in tab_widget.fields_dict.items():
+                        setattr(button_conf, field_name, get_value(field_widget))
 
-        # Save changes to config, e.g. config.update(...) if that method handles it
-        config.update(**{f.name: getattr(config, f.name) for f in fields(Config) if f.name != "buttons"})
 
-    buttons_layout = QHBoxLayout()
-    ok_button = QPushButton("OK", dialog)
-    ok_button.clicked.connect(lambda: (save_config(), dialog.accept()))
+            if field_info.name in general_widgets:
+                w = general_widgets[field_info.name]
 
-    cancel_button = QPushButton("Cancel", dialog)
-    cancel_button.clicked.connect(dialog.reject)
+                config.__dict__[field_info.name] = get_value(w) 
 
-    buttons_layout.addWidget(ok_button)
-    buttons_layout.addWidget(cancel_button)
-    main_layout.addLayout(buttons_layout)
+        config.save_to_conf() 
+                
 
-    dialog.resize(600, 800)
+    btn_layout = QHBoxLayout()
+    ok_btn = QPushButton("OK")
+    ok_btn.clicked.connect(lambda: (save_config(), dialog.accept()))
+    cancel_btn = QPushButton("Cancel")
+    cancel_btn.clicked.connect(lambda: (config.reset(), dialog.reject()))
+    btn_layout.addWidget(ok_btn)
+    btn_layout.addWidget(cancel_btn)
+    main_layout.addLayout(btn_layout)
+
+    dialog.resize(600, 400)
     dialog.exec()

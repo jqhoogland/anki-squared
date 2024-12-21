@@ -74,6 +74,11 @@ class Config:
             system_prompt=conf.get("system_prompt", "You are the world's best language teacher (language: {language}, student's level: {difficulty})."),
             buttons=button_configs,
         )
+    
+    def reset(self):
+        conf = asdict(self.from_conf())
+        buttons = [ButtonConfig(**button) for button in conf.pop("buttons")]
+        self.update(**conf, buttons=buttons)
 
     def save_to_conf(self):
         conf = mw.addonManager.getConfig("ankisquared") or {}
