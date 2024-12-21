@@ -3,6 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 <!-- TODO: [![Downloads](https://static.pepy.tech/personalized-badge/ankisquared?period=total&units=international_system&left_color=black&right_color=orange&left_text=Downloads)](https://pepy.tech/project/ankisquared) -->
 [![Anki: 2.1.65+](https://img.shields.io/badge/Anki-2.1.65%2B-blue.svg)](https://apps.ankiweb.net)
+[![Addon: #####](https://img.shields.io/badge/Addon-######-green.svg)](https://apps.ankiweb.net/ankisquared)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 > An Anki add-on that enhances card creation by integrating AI and external APIs to provide rich content for your flashcards.
