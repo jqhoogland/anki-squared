@@ -1,20 +1,19 @@
 # Anki²
 
-<!-- [![PyPI version](https://badge.fury.io/py/ankisquared.svg)](https://badge.fury.io/py/ankisquared) -->
+<!-- TODO: [![PyPI version](https://badge.fury.io/py/ankisquared.svg)](https://badge.fury.io/py/ankisquared) -->
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-<!-- [![Downloads](https://static.pepy.tech/personalized-badge/ankisquared?period=total&units=international_system&left_color=black&right_color=orange&left_text=Downloads)](https://pepy.tech/project/ankisquared) -->
+<!-- TODO: [![Downloads](https://static.pepy.tech/personalized-badge/ankisquared?period=total&units=international_system&left_color=black&right_color=orange&left_text=Downloads)](https://pepy.tech/project/ankisquared) -->
 [![Anki: 2.1.65+](https://img.shields.io/badge/Anki-2.1.65%2B-blue.svg)](https://apps.ankiweb.net)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-> An Anki add-on that enhances card creation by integrating external APIs to provide rich content for your flashcards.
+> An Anki add-on that enhances card creation by integrating AI and external APIs to provide rich content for your flashcards.
 
-<!-- ![Demo](docs/assets/demo.gif) -->
+<!-- TODO: ![Demo](docs/assets/demo.gif) -->
 
 - [Anki²](#anki)
   - [Features](#features)
-  - [Installation](#installation)
-    - [From AnkiWeb](#from-ankiweb)
-    - [From Source](#from-source)
+  - [Quick Start](#quick-start)
+    - [Installation](#installation)
   - [Usage](#usage)
   - [Configuration](#configuration)
   - [Contributing](#contributing)
@@ -30,25 +29,25 @@
 🗣️ **Pronunciations**
 - Get native speaker pronunciations from Forvo
 - Support for 40+ languages
-- High-quality MP3 audio files
+
 
 🤖 **AI-Powered Content**
-- Generate example sentences using OpenAI
+- Generate example sentences
 - Create concise definitions
 - Generate IPA transcriptions
 - Adjustable difficulty levels (A1-C2)
 
-## Installation
+## Quick Start
 
-### From AnkiWeb
+### Installation
 
+**From AnkiWeb:**
 1. Open Anki
 2. Tools → Add-ons → Get Add-ons...
 3. Paste code: `[addon_code]` <!-- TODO: Add actual addon code -->
 4. Restart Anki
 
-### From Source
-
+**From Source:**
 ```bash
 # Clone repository
 git clone https://github.com/jqhoogland/ankisquared.git
@@ -89,11 +88,14 @@ pip install -r requirements.txt
 
 ## Contributing
 
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details.
+- [User Guide](docs/user-guide.md)
+- [Configuration](docs/config.md)
+- [API Documentation](docs/api.md)
+- [Contributing Guide](CONTRIBUTING.md)
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) file
 
 ---
 

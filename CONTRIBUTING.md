@@ -1,61 +1,80 @@
 # Contributing to Anki²
 
-## Development Setup
+Thank you for your interest in contributing! This guide will help you get started.
+
+## Quick Start
 
 1. Fork and clone the repository
-2. Set up development environment:   ```bash
-   python -m venv venv
-   source venv/bin/activate  # or `venv\Scripts\activate` on Windows
-   pip install -r requirements.txt   ```
-3. Link to Anki:   ```bash
-   ln -s /path/to/repo/ankisquared /path/to/Anki2/addons21/ankisquared   ```
-
-## Hot Reload Development
-
-1. Make code changes
-2. In Anki, use Ctrl+Shift+R to reload add-ons
-3. Check the Anki debug console for errors:
-
-### Accessing the Debug Console
-
-**Windows**:
-- Launch Anki using `anki-console.bat` located in:
-  - `C:\Users\<username>\AppData\Local\Programs\Anki` or
-  - `C:\Program Files\Anki`
-
-**macOS**:
-
-```
-bash
-/Applications/Anki.app/Contents/MacOS/anki
+2. Create virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # or `venv\Scripts\activate` on Windows
+pip install -r requirements.txt
 ```
 
-**Linux**:
-
-```
-bash
-anki
+3. Link to Anki addons folder:
+```bash
+ln -s /path/to/repo/ankisquared /path/to/Anki2/addons21/ankisquared
 ```
 
-### Debug Tips
-- Use `showInfo()` for debugging:
-  ```python
-  from aqt.utils import showInfo
-  showInfo("Debug message")
-  ```
-- Check the [Official Anki Add-on Documentation](https://addon-docs.ankiweb.net/) for API references
+## Development
 
-## Testing
+### Hot Reload Setup
 
-1. Manual testing through Anki interface
-2. Verify all API integrations work:
-   - Bing Images
-   - Forvo Pronunciations
-   - OpenAI text generation
+1. Install the "Reload addon" add-on in Anki:
+   - Tools → Add-ons → Get Add-ons...
+   - Enter code: `613411786`
+   - Restart Anki
+
+2. Hot Reload Workflow:
+   - Make code changes
+   - In Anki: Tools → Reload addon → Select "Anki²"
+   - Or use the default shortcut `Ctrl+R`
+   - Check debug console for errors
+
+Note: Some changes may still require a full Anki restart, particularly those involving:
+- Hook registration
+- Module initialization
+- Main window modifications
+
+### Project Structure
+```
+ankisquared/
+├── api/          # External service integrations
+├── gui/          # Anki editor interface
+├── docs/         # Technical documentation
+└── tests/        # Test suite
+```
+
+See [Technical Documentation](docs/index.md) for detailed architecture overview.
+
+### Debug Console Access
+
+**Windows**: Use `anki-console.bat` in Anki installation folder
+**macOS**: Run `/Applications/Anki.app/Contents/MacOS/anki`
+**Linux**: Run `anki` from terminal
+
+### Debugging Tips
+```python
+from aqt.utils import showInfo
+showInfo("Debug message")
+```
 
 ## Pull Request Process
 
-1. Update documentation
-2. Test all features
-3. Submit PR with clear description
+1. Create feature branch
+2. Update documentation
+3. Add/update tests
+4. Submit PR with clear description
+
+## Resources
+
+- [Technical Documentation](docs/index.md)
+- [Anki Add-on Docs](https://addon-docs.ankiweb.net/)
+
+## Getting Help
+
+- Open an issue
+- Join our [Discord](https://discord.gg/TODO)
+
 
