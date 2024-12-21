@@ -1,4 +1,3 @@
-
 import html
 import os
 import sys
@@ -6,6 +5,7 @@ from dataclasses import asdict
 
 import anki
 from anki.notes import Note
+from ankisquared.api.utils import Suggestion
 from aqt import gui_hooks, mw
 from aqt.editor import Editor
 from aqt.qt import *
@@ -36,37 +36,37 @@ def is_valid_field(editor: Editor) -> bool:
         return False
 
 
-def add_images(editor: Editor, urls: list[str]):
-    if urls:
-        urls = urls[:max(NUM_IMAGES, len(urls))]
-        links = []
+# def add_images(editor: Editor, urls: list[str]):
+#     if urls:
+#         urls = urls[:max(NUM_IMAGES, len(urls))]
+#         links = []
 
-        for url in urls:
-            fname = editor._retrieveURL(url)    
-            links.append(f"<img src=\"{html.escape(fname, quote=False)}\" />")
+#         for url in urls:
+#             fname = editor._retrieveURL(url)    
+#             links.append(f"<img src=\"{html.escape(fname, quote=False)}\" />")
 
-        editor.note.fields[editor.currentField] = "<br />".join(links)
-        editor.loadNote()
-    else:
-        showWarning("No images found!")        
-
-
-def add_pronunciation(editor: Editor, url: str):
-    if url:
-        fname = editor._retrieveURL(url)
-        link = f"[sound:{html.escape(fname, quote=False)}]"
-        editor.note.fields[editor.currentField] = link
-        editor.loadNote()
-    else:
-        showWarning("No pronunciations found!")
+#         editor.note.fields[editor.currentField] = "<br />".join(links)
+#         editor.loadNote()
+#     else:
+#         showWarning("No images found!")        
 
 
-def add_sentences(editor: Editor, sentence: str):
-    if sentence:
-        editor.note.fields[editor.currentField] = sentence
-        editor.loadNote()
-    else:
-        showWarning("No sentences found!")
+# def add_pronunciation(editor: Editor, url: str):
+#     if url:
+#         fname = editor._retrieveURL(url)
+#         link = f"[sound:{html.escape(fname, quote=False)}]"
+#         editor.note.fields[editor.currentField] = link
+#         editor.loadNote()
+#     else:
+#         showWarning("No pronunciations found!")
+
+
+# def add_sentences(editor: Editor, sentence: str):
+#     if sentence:
+#         editor.note.fields[editor.currentField] = sentence
+#         editor.loadNote()
+#     else:
+#         showWarning("No sentences found!")
 
 
 def clean(s: str) -> str:
@@ -90,19 +90,16 @@ def did_load_editor(buttons: list, editor: Editor):
 
         if is_valid_field(editor) and query:
             if endpoint == "Bing":
-                results = images.get_images(query, **config)
-                add_images(editor, results)
+                suggestion = images.get_images(query, **config)
             elif endpoint == "Forvo":
-                results = pronunciations.get_pronunciations(query, **config)
-                result = results[0] if results else None
-                add_pronunciation(editor, result)
+                suggestion = pronunciations.get_pronunciations(query, **config)
             elif endpoint == "OpenAI":
-                # Assuming you have a function to handle this
-                results = sentences.get_sentence(query, **config) 
-                add_sentences(editor, results)
+                suggestion = sentences.get_sentence(query, **config) 
             else:
                 showWarning(f"Unknown endpoint: {endpoint}")
                 return
+            
+            update_field(editor, suggestion)
         elif not query:
             showWarning(f"Invalid query {query}!")
         elif not is_valid_field(editor):
@@ -132,3 +129,20 @@ def did_load_editor(buttons: list, editor: Editor):
         id="suggestions_dropdown_button"
     )
     buttons.append(suggestions_settings_btn)
+
+
+def update_field(editor: Editor, suggestion: Suggestion):
+    """Update the current field with new content and refresh the note."""
+    def url_retriever(x: str) -> str:
+        url = editor._retrieveURL(x)
+        return html.escape(url, quote=False)
+    
+    content = suggestion.to_anki(url_retriever=url_retriever)
+    print(suggestion)
+
+    if not content:
+        showWarning("No content found!")
+        return
+                
+    editor.note.fields[editor.currentField] = content
+    editor.loadNote()

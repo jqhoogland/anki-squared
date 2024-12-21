@@ -1,19 +1,16 @@
-import os
 
 import requests
-from anki.utils import namedtmp
-from aqt import mw
-from aqt.utils import showWarning
 
-from ankisquared.config import Config
+from ankisquared.api.utils import Suggestion
 
 
 def get_pronunciations(
     query: str,
     forvo_api_key: str,
     language: str,
+    max_pronunciations: int = 1,
     **_
-) -> list[str]:
+) -> Suggestion:
     """Fetch pronunciation MP3 URLs from Forvo API for a given word.
 
     Args:
@@ -44,7 +41,12 @@ def get_pronunciations(
         
         if response.status_code == 200:
             data = response.json()
-            return [item["pathmp3"] for item in data["items"]]
+            urls = [item["pathmp3"] for item in data["items"]]
+
+            if len(urls) > max_pronunciations:
+                urls = urls[:max_pronunciations]
+            
+            return Suggestion(type="sound", urls=urls)
         else:
             print(f"Forvo API request failed with status {response.status_code}")
             print(f"Error: {response.text}")

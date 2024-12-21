@@ -1,10 +1,6 @@
-from pprint import pp
-
 import requests
-from aqt import mw
+from ankisquared.api.utils import Suggestion
 from aqt.utils import showWarning
-
-from ankisquared.config import Config
 from ankisquared.consts import ModelLiteral
 
 
@@ -17,7 +13,7 @@ def get_sentence(
     temperature: float,
     model: ModelLiteral,
     **_
-) -> str:
+) -> Suggestion:
     """Generate a language learning sentence using OpenAI's API.
 
     Args:
@@ -61,7 +57,7 @@ def get_sentence(
         if response.status_code == 200:
             choices = response.json().get("choices", [])
             if choices:
-                return choices[0].get("message", {}).get("content", "").strip()
+                return Suggestion(type="text", content=choices[0].get("message", {}).get("content", "").strip())
         else:
             showWarning("OpenAI API request failed!")
             print(f"Error: {response.text}")
@@ -70,4 +66,4 @@ def get_sentence(
         showWarning(f"Network error: {str(e)}")
         print(f"Request failed: {str(e)}")
     
-    return ""
+    return Suggestion(type="text", content="")

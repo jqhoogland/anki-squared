@@ -1,8 +1,9 @@
 from contextlib import contextmanager
 from typing import Dict, Iterator, Optional
 
-import requests
+import requests 
 from aqt.utils import showWarning
+from ankisquared.api.utils import Suggestion
 
 
 BING_API_ENDPOINT = "https://api.bing.microsoft.com/v7.0/images/search"
@@ -83,7 +84,7 @@ def get_images(
     language: str,
     num_images: int,
     **_
-) -> list:
+) -> Suggestion:
     """Get image thumbnails from Bing Image Search.
 
     Args:
@@ -97,10 +98,16 @@ def get_images(
         list: List of thumbnail URLs
     """
     with create_session() as session:
-        return [r["thumbnail"] for r in search_bing_images(
+        urls = [r["thumbnail"] for r in search_bing_images(
             session=session,
             query=keywords,
             subscription_key=bing_api_key,
             mkt=language,
             num_results=num_images,
         )]
+
+        if len(urls) > num_images:
+            urls = urls[:num_images]
+
+        return Suggestion(type="image", urls=urls)
+
