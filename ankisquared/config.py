@@ -28,56 +28,80 @@ class ButtonConfig:
     def cmd(self) -> str:
         return f"suggest{''.join(word.capitalize() for word in self.name.split())}"
 
+    def cast(self):
+        pass
+
 
 @dataclass
-class Config:
+class ProfileConfig:
+    name: str
     language: Annotated[str, {"options": LANGUAGES}]
-    difficulty: Literal["A1", "A2", "B1", "B2", "C1", "C2"]
-
-    # Pronunciations
-    forvo_api_key: str
 
     # Images
-    bing_api_key: str
     num_images: int
 
-    # Sentences
-    openai_api_key: str
+    # Generations
     model: ModelLiteral
     max_tokens: int
     temperature: float
     system_prompt: str = (
-        "You are the world's best language teacher (language: {language}, student's level: {difficulty})."
+        "You are the world's best language teacher (language: {language})."
     )
 
-    # Button Configurations
+    def cast(self):
+        self.num_images = int(self.num_images)
+        self.max_tokens = int(self.max_tokens)
+        self.temperature = float(self.temperature)
+
+
+@dataclass
+class Config:
+    forvo_api_key: str
+    bing_api_key: str
+    openai_api_key: str
+
     buttons: List[ButtonConfig] = field(default_factory=list)
+    profiles: List[ProfileConfig] = field(default_factory=list)
+    active_profile_name: str = ""
 
     @classmethod
     def from_conf(cls):
         conf = mw.addonManager.getConfig("ankisquared") or {}
-        button_configs = []
 
+        button_configs = []
         for button_conf in conf.get("buttons", None) or []:
-            if "cmd" in button_conf:
-                button_conf.pop("cmd")
             button_configs.append(ButtonConfig(**button_conf))
 
+        profile_configs = []
+        for profile_conf in conf.get("profiles", None) or []:
+            profile_configs.append(ProfileConfig(**profile_conf))
+
+        if not profile_configs:
+            profile_configs.append(
+                ProfileConfig(
+                    name="Default",
+                    # Backwards compatibility
+                    language=conf.get("language", "en"),
+                    num_images=conf.get("num_images", 3),
+                    model=conf.get("model", "gpt-4o"),
+                    max_tokens=conf.get("max_tokens", 100),
+                    temperature=conf.get("temperature", 0.7),
+                    system_prompt=conf.get(
+                        "system_prompt",
+                        "You are the world's best language teacher (language: {language}).",
+                    ),
+                )
+            )
+
         config = cls(
-            language=conf.get("language", "en"),
-            difficulty=conf.get("difficulty", "A1"),
             forvo_api_key=conf.get("forvo_api_key", ""),
             bing_api_key=conf.get("bing_api_key", ""),
-            model=conf.get("model", "gpt-4"),
             openai_api_key=conf.get("openai_api_key", ""),
-            max_tokens=conf.get("max_tokens", 100),
-            temperature=conf.get("temperature", 0.7),
-            num_images=conf.get("num_images", 3),
-            system_prompt=conf.get(
-                "system_prompt",
-                "You are the world's best language teacher (language: {language}, student's level: {difficulty}).",
-            ),
             buttons=button_configs,
+            profiles=profile_configs,
+            active_profile_name=conf.get(
+                "active_profile_name", profile_configs[0].name
+            ),
         )
         config.cast()
         return config
@@ -85,7 +109,8 @@ class Config:
     def reset(self):
         conf = asdict(self.from_conf())
         buttons = [ButtonConfig(**button) for button in conf.pop("buttons")]
-        self.update(**conf, buttons=buttons)
+        profiles = [ProfileConfig(**profile) for profile in conf.pop("profiles")]
+        self.update(**conf, buttons=buttons, profiles=profiles)
         self.cast()
 
     def save_to_conf(self):
@@ -101,6 +126,18 @@ class Config:
         self.save_to_conf()
 
     def cast(self):
-        self.num_images = int(self.num_images)
-        self.max_tokens = int(self.max_tokens)
-        self.temperature = float(self.temperature)
+        for button in self.buttons:
+            button.cast()
+
+        for profile in self.profiles:
+            profile.cast()
+
+    def get_active_profile(self):
+        return next(
+            (p for p in self.profiles if p.name == self.active_profile_name),
+            self.profiles[0],
+        )
+
+    def set_active_profile(self, profile: ProfileConfig):
+        self.active_profile_name = profile.name
+        self.save_to_conf()

@@ -49,6 +49,7 @@ def get_completion(
     }
 
     try:
+        print("POST", OPENAI_API_ENDPOINT, data)
         response = requests.post(
             "https://api.openai.com/v1/chat/completions",
             headers=headers,
