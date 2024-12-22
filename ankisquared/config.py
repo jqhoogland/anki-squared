@@ -1,6 +1,6 @@
 from dataclasses import asdict, dataclass, field
 from pprint import pp
-from typing import Annotated, List, Literal, Optional
+from typing import Annotated, Dict, List, Literal, Optional
 from enum import Enum
 
 from aqt import mw
@@ -53,6 +53,31 @@ class ProfileConfig:
         self.max_tokens = int(self.max_tokens)
         self.temperature = float(self.temperature)
 
+        return self
+
+@dataclass
+class FieldCompletion:
+    enabled: bool = True
+    endpoint: Endpoint = Endpoint.OPENAI
+    prompt: str = "{0}"
+
+    def cast(self):
+        return self
+
+@dataclass 
+class NoteTypeTemplate:
+    note_type_id: int
+    field_completions: Dict[str, FieldCompletion]
+
+    @property
+    def name(self):
+        return mw.col.models.get(self.note_type_id).name
+    
+    def cast(self):
+        self.note_type_id = int(self.note_type_id)
+        for field_completion in self.field_completions.values():
+            field_completion.cast()
+        return self
 
 @dataclass
 class Config:
@@ -63,6 +88,7 @@ class Config:
     buttons: List[ButtonConfig] = field(default_factory=list)
     profiles: List[ProfileConfig] = field(default_factory=list)
     active_profile_name: str = ""
+    note_templates: List[NoteTypeTemplate] = field(default_factory=list)
 
     @classmethod
     def from_conf(cls):
@@ -93,6 +119,11 @@ class Config:
                 )
             )
 
+        note_templates = []
+        for note_template in conf.get("note_templates", None) or []:
+            field_completions = {k: FieldCompletion(**v) for k, v in note_template.pop("field_completions", {}).items()}
+            note_templates.append(NoteTypeTemplate(**note_template, field_completions=field_completions))
+
         config = cls(
             forvo_api_key=conf.get("forvo_api_key", ""),
             bing_api_key=conf.get("bing_api_key", ""),
@@ -102,6 +133,7 @@ class Config:
             active_profile_name=conf.get(
                 "active_profile_name", profile_configs[0].name
             ),
+            note_templates=note_templates,
         )
         config.cast()
         return config
@@ -131,6 +163,11 @@ class Config:
 
         for profile in self.profiles:
             profile.cast()
+
+        for note_template in self.note_templates:
+            note_template.cast()
+
+        return self
 
     def get_active_profile(self):
         return next(

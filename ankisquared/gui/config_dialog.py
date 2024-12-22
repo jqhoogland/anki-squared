@@ -1,6 +1,7 @@
 from dataclasses import fields
 from typing import Dict, Literal, Tuple, Union, get_args, get_origin
 
+from aqt import mw
 from aqt.qt import (
     QComboBox,
     QDialog,
@@ -14,9 +15,13 @@ from aqt.qt import (
     QTextEdit,
     QVBoxLayout,
     QWidget,
+    QGroupBox,
+    QCheckBox,
+    QSizePolicy,
+    QScrollArea,
 )
 
-from ankisquared.config import ButtonConfig, Config, Endpoint, ProfileConfig
+from ankisquared.config import ButtonConfig, Config, Endpoint, FieldCompletion, NoteTypeTemplate, ProfileConfig
 from ankisquared.consts import DIFFICULTIES, LANGUAGES
 from ankisquared.gui.utils import get_value
 
@@ -198,6 +203,135 @@ def generate_button_config_panel(
     return widget
 
 
+def generate_note_template_tab(config: Config, parent: QWidget = None) -> QWidget:
+    main_widget = QWidget(parent)
+    main_layout = QVBoxLayout(main_widget)
+
+    # Store widgets in a dict of dicts:
+    # fields_map[note_type_id][field_name] = (group_box, endpoint_combo, prompt_widget)
+    main_widget.fields_map = {}
+
+    # Create and add note type selector at the top, outside scroll area
+    note_type_combo = QComboBox()
+    note_types = mw.col.models.all()
+    for nt in note_types:
+        note_type_combo.addItem(nt["name"], str(nt["id"]))
+
+    # Set default current note type by ID rather than name
+    current_note_type = mw.col.models.current()
+    if current_note_type:
+        idx = note_type_combo.findData(str(current_note_type["id"]))
+        if idx >= 0:
+            note_type_combo.setCurrentIndex(idx)
+
+    main_layout.addWidget(QLabel("Note Type:"))
+    main_layout.addWidget(note_type_combo)
+
+    # Create scroll area for fields
+    scroll_area = QScrollArea()
+    scroll_area.setWidgetResizable(True)
+
+    scroll_widget = QWidget()
+    scroll_layout = QVBoxLayout(scroll_widget)
+
+    fields_widget = QWidget()
+    fields_layout = QVBoxLayout(fields_widget)
+    scroll_layout.addWidget(fields_widget)
+
+    def update_fields():
+        note_type_id = int(note_type_combo.currentData())
+        note_type = mw.col.models.get(note_type_id)
+
+        # Clear any existing form fields
+        while fields_layout.count():
+            item = fields_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        # Initialize sub-dict for the selected note type
+        main_widget.fields_map[note_type_id] = {}
+
+        # Find or create a matching note template in config
+        template = next(
+            (t for t in config.note_templates if t.note_type_id == note_type_id),
+            None,
+        )
+        # If there's no existing template in config, don't create it yet.
+        # We'll generate a new one later when saving if needed.
+
+        print([(t.note_type_id, type(t.note_type_id)) for t in config.note_templates])
+        print(note_type_id, type(note_type_id))
+        print(template)
+
+        for field in note_type["flds"]:
+            field_name = field["name"]
+            # Either get an existing FieldCompletion or a blank one
+            completion = (
+                template.field_completions.get(field_name, FieldCompletion())
+                if template
+                else FieldCompletion()
+            )
+
+            field_group = QGroupBox(field_name)
+            field_group.setCheckable(True)
+            field_group.setChecked(completion.enabled)
+
+            inner_widget = QWidget()
+            inner_layout = QVBoxLayout(inner_widget)
+
+            endpoint_combo = QComboBox()
+            for ep in Endpoint:
+                endpoint_combo.addItem(ep.value)
+            endpoint_combo.setCurrentText(completion.endpoint)
+            inner_layout.addWidget(endpoint_combo)
+
+            prompt_widget = QTextEdit()
+            prompt_widget.setText(completion.prompt)
+            inner_layout.addWidget(prompt_widget)
+
+            # Changing endpoint could trigger a different UI approach if needed
+            def on_endpoint_changed():
+                # Example: if you want to recreate widgets or handle special logic
+                pass
+
+            endpoint_combo.currentIndexChanged.connect(on_endpoint_changed)
+
+            field_group_layout = QVBoxLayout(field_group)
+            field_group_layout.addWidget(inner_widget)
+
+            def toggle_inner_widget(expanded):
+                pass
+                # inner_widget.setVisible(expanded)
+                # sp = field_group.sizePolicy()
+                # if expanded:
+                #     sp.setVerticalPolicy(QSizePolicy.Policy.Preferred)
+                # else:
+                #     sp.setVerticalPolicy(QSizePolicy.Policy.Minimum)
+                # field_group.setSizePolicy(sp)
+
+            field_group.toggled.connect(toggle_inner_widget)
+            toggle_inner_widget(completion.enabled)
+
+            fields_layout.addWidget(field_group)
+
+            # Store references in fields_map so we can read them later when saving
+            main_widget.fields_map[note_type_id][field_name] = (
+                field_group,
+                endpoint_combo,
+                prompt_widget,
+            )
+
+    note_type_combo.currentIndexChanged.connect(update_fields)
+    update_fields()
+
+    scroll_layout.addStretch()
+    scroll_widget.setLayout(scroll_layout)
+    scroll_area.setWidget(scroll_widget)
+
+    main_layout.addWidget(scroll_area)
+    main_widget.setLayout(main_layout)
+    return main_widget
+
 def generate_config_dialog(config: Config):
     dialog = QDialog()
     dialog.setWindowTitle("Settings")
@@ -221,6 +355,7 @@ def generate_config_dialog(config: Config):
     profiles_tab_layout.addWidget(profiles_tab_widget)
     profiles_tab_outer.setLayout(profiles_tab_layout)
     top_tab_widget.addTab(profiles_tab_outer, "Profiles")
+
 
     def on_remove_profile(profile_index, profile_conf):
         config.profiles.pop(profile_index)
@@ -336,6 +471,10 @@ def generate_config_dialog(config: Config):
     buttons_tab_widget.tabBarClicked.connect(on_buttons_tab_clicked)
     refresh_button_tabs()
 
+    # -- Note Templates Tab --
+    note_templates_tab = generate_note_template_tab(config)
+    top_tab_widget.addTab(note_templates_tab, "Note Templates")
+
     # -- Save/Cancel buttons --
     def save_config():
         # Update general fields
@@ -357,6 +496,38 @@ def generate_config_dialog(config: Config):
                 button_conf = config.buttons[i]
                 for k, w in tab_widget.fields_dict.items():
                     setattr(button_conf, k, get_value(w))
+
+        # For each note_type_id in fields_map, read the UI and update or create a template
+        note_templates_data = note_templates_tab.fields_map
+        for note_type_id, fields_dict in note_templates_data.items():
+            # See if there's an existing template for that note type
+            existing_template = next(
+                (t for t in config.note_templates if t.note_type_id == note_type_id),
+                None,
+            )
+            if not existing_template:
+                # Create a new one if needed (depends on how you define 'NoteTemplate')
+                # Example: config.note_templates might store items that look like:
+                #   NoteTypeTemplate(note_type_id=..., field_completions={})
+                # Adjust the class or dict usage as needed.
+                existing_template = NoteTypeTemplate(
+                    note_type_id=note_type_id,
+                    field_completions={},
+                )
+                config.note_templates.append(existing_template)
+
+            # For each field, read the widgets
+            for field_name, (group_box, endpoint_combo, prompt_widget) in fields_dict.items():
+                enabled = group_box.isChecked()
+                endpoint = endpoint_combo.currentText()
+                prompt = prompt_widget.toPlainText()
+
+                # Build a new FieldCompletion object or dict
+                existing_template.field_completions[field_name] = FieldCompletion(
+                    enabled=enabled,
+                    endpoint=endpoint,
+                    prompt=prompt,
+                )
 
         print("Saving config...")
         config.save_to_conf()
