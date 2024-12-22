@@ -89,7 +89,7 @@ def bulk_complete_note(editor: Editor):
     editor.currentField = original_field
 
 
-def unified_action(editor: Editor, action_config: ButtonConfig):
+def unified_action(editor: Editor, action_config: ButtonConfig, check=False):
     if not is_valid_field(editor):
         return
 
@@ -116,11 +116,12 @@ def unified_action(editor: Editor, action_config: ButtonConfig):
     dialog.resize(600, 300)
     dialog.setFixedSize(600, 300)
 
-    ok = dialog.exec()
-    query = dialog.textValue()
+    if check:
+        ok = dialog.exec()
+        query = dialog.textValue()
 
-    if not ok or not query:
-        return
+        if not ok or not query:
+            return
 
     # Decide which profile to use. If you stored an active profile above, use that.
     # Otherwise fallback to the first one, etc.
@@ -188,15 +189,24 @@ def did_load_editor(buttons: list, editor: Editor):
         if not icon and not label:
             label = f"Suggest {button_config.name}"
 
-        return editor.addButton(
+        keys = button_config.keys.split(",")
+
+        button = editor.addButton(
             icon=icon,
             label=label,
-            func=lambda s=editor: unified_action(s, button_config),
+            func=lambda s=editor: unified_action(s, button_config, check=True),
             cmd=button_config.cmd,
             tip=button_config.tip,
-            keys=button_config.keys,
+            keys=keys[0],
             id=f"{button_config.name}_button",
         )
+
+        if len(keys) > 1:
+            for key in keys[1:]:
+                fast_shortcut = QShortcut(QKeySequence(key), editor.widget)
+                fast_shortcut.activated.connect(lambda: unified_action(editor, button_config, check=False))
+
+        return button
 
     # 2) Add settings button (will appear where addButton normally places it, typically below).
     buttons.append(
@@ -217,5 +227,8 @@ def did_load_editor(buttons: list, editor: Editor):
 
 
     # Add to existing function
-    shortcut = QShortcut(QKeySequence("Ctrl+Shift+A"), editor.widget)
-    shortcut.activated.connect(lambda: bulk_complete_note(editor))
+    shortcut = QShortcut(QKeySequence("Ctrl+Shift+G"), editor.widget)
+    shortcut.activated.connect(lambda: bulk_complete_note(editor, check=False))
+
+    shortcut = QShortcut(QKeySequence("Ctrl+G"), editor.widget)
+    shortcut.activated.connect(lambda: bulk_complete_note(editor, check=True))
