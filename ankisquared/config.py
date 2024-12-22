@@ -36,10 +36,10 @@ class ButtonConfig:
 class ProfileConfig:
     name: str
     language: Annotated[str, {"options": LANGUAGES}]
-    
+
     # Images
     num_images: int
-    
+
     # Generations
     model: ModelLiteral
     max_tokens: int

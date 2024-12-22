@@ -90,7 +90,6 @@ def get_value(widget):
             if value is not None:
                 return value
 
-    
     if hasattr(widget, "text"):
         return widget.text()
     elif hasattr(widget, "toPlainText"):

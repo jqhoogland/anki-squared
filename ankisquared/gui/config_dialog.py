@@ -20,6 +20,7 @@ from ankisquared.config import ButtonConfig, Config, Endpoint, ProfileConfig
 from ankisquared.consts import DIFFICULTIES, LANGUAGES
 from ankisquared.gui.utils import get_value
 
+
 def generate_general_settings_panel(
     config: Config, parent: QWidget = None
 ) -> Tuple[QVBoxLayout, Dict[str, QWidget]]:
@@ -207,7 +208,9 @@ def generate_config_dialog(config: Config):
 
     # -- General Tab --
     general_tab = QWidget(dialog)
-    general_layout, general_widgets = generate_general_settings_panel(config, general_tab)
+    general_layout, general_widgets = generate_general_settings_panel(
+        config, general_tab
+    )
     general_tab.setLayout(general_layout)
     top_tab_widget.addTab(general_tab, "General")
 
@@ -225,6 +228,7 @@ def generate_config_dialog(config: Config):
 
     def on_duplicate_profile(profile_index, profile_conf):
         import copy
+
         new_profile = copy.deepcopy(profile_conf)
         config.profiles.append(new_profile)
         refresh_profile_tabs()
@@ -286,6 +290,7 @@ def generate_config_dialog(config: Config):
 
     def on_duplicate_button(button_index, button_conf):
         import copy
+
         new_button = copy.deepcopy(button_conf)
         config.buttons.append(new_button)
         refresh_button_tabs()
