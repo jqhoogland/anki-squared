@@ -50,59 +50,6 @@ def update_field(editor: Editor, suggestion: Suggestion, current_field: int):
     editor.loadNote()
 
 
-def choose_profile_dialog(editor):
-    profiles = editor.config.profiles
-    if not profiles:
-        showWarning("No profiles configured!")
-        return None
-
-    dialog = QDialog(editor.parentWindow)
-    dialog.setWindowTitle("Choose Profile")
-    layout = QVBoxLayout(dialog)
-
-    label = QLabel("Select a profile:")
-    layout.addWidget(label)
-
-    list_widget = QListWidget(dialog)
-    for i, prof in enumerate(profiles):
-        item = QListWidgetItem(prof.name)
-        # Store index in item
-        item.setData(0x0100, i)  # 0x0100 = Qt.UserRole
-        list_widget.addItem(item)
-    layout.addWidget(list_widget)
-
-    # Create a horizontal layout for our own OK/Cancel buttons
-    buttons_layout = QHBoxLayout()
-    ok_button = QPushButton("OK")
-    cancel_button = QPushButton("Cancel")
-    buttons_layout.addWidget(ok_button)
-    buttons_layout.addWidget(cancel_button)
-    layout.addLayout(buttons_layout)
-
-    def on_ok():
-        item = list_widget.currentItem()
-        if not item:
-            # If nothing is selected, consider it a "cancel"
-            dialog.reject()
-            return
-        chosen_index = item.data(0x0100)
-        dialog.done(chosen_index)
-
-    def on_cancel():
-        dialog.reject()
-
-    ok_button.clicked.connect(on_ok)
-    cancel_button.clicked.connect(on_cancel)
-
-    # If OK is pressed, dialog.done(...) uses the item index as the return code
-    result = dialog.exec()
-
-    # If a valid index was returned, return that ProfileConfig
-    if 0 <= result < len(profiles):
-        return profiles[result]
-    return None
-
-
 def did_load_editor(buttons: list, editor: Editor):
     """Initialize editor buttons and actions when editor loads."""
 

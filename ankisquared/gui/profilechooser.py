@@ -1,9 +1,23 @@
 from __future__ import annotations
-
 from collections.abc import Callable
 
-from aqt import AnkiQt, gui_hooks
+from ankisquared.gui.config_dialog import generate_config_dialog
+from aqt.editor import Editor
+from aqt.utils import showWarning
 from aqt.qt import (
+    QDialog,
+    QVBoxLayout,
+    QListWidget,
+    QListWidgetItem,
+    QLabel,
+    QDialog,
+    QVBoxLayout,
+    QListWidget,
+    QListWidgetItem,
+    QLabel,
+    QHBoxLayout,
+    QPushButton,
+    QWidget,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -13,6 +27,8 @@ from aqt.qt import (
     qconnect,
     QKeySequence,
 )
+
+from aqt import AnkiQt
 from aqt.qt import sip
 
 from aqt.utils import shortcut, tr
@@ -70,7 +86,6 @@ class ProfileChooser(QHBoxLayout):
             self.profile.setText(name.replace("&", "&&"))
 
     def choose_profile(self) -> None:
-        from ankisquared.gui.editor_menu import choose_profile_dialog
 
         chosen_profile = choose_profile_dialog(self.editor)
         if chosen_profile and chosen_profile != self._selected_profile:
@@ -96,3 +111,74 @@ class ProfileChooser(QHBoxLayout):
 
     def hide(self) -> None:
         self._widget.hide()
+
+
+def choose_profile_dialog(editor):
+    profiles = editor.config.profiles
+    if not profiles:
+        showWarning("No profiles configured!")
+        return None
+
+    dialog = QDialog(editor.parentWindow)
+    dialog.setWindowTitle("Choose Profile")
+    layout = QVBoxLayout(dialog)
+
+    label = QLabel("Select a profile:")
+    layout.addWidget(label)
+
+    list_widget = QListWidget(dialog)
+    for i, prof in enumerate(profiles):
+        item = QListWidgetItem(prof.name)
+        # Store index in item
+        item.setData(0x0100, i)  # 0x0100 = Qt.UserRole
+        list_widget.addItem(item)
+    layout.addWidget(list_widget)
+
+    # Create a horizontal layout for our own OK/Cancel buttons
+    buttons_layout = QHBoxLayout()
+
+    # Add Manage button
+    manage_button = QPushButton("Manage")
+
+    def on_manage():
+        generate_config_dialog(editor.config)
+        # Refresh the list widget with potentially updated profiles
+        list_widget.clear()
+        profiles = editor.config.profiles  # Get fresh profiles
+        for i, prof in enumerate(profiles):
+            item = QListWidgetItem(prof.name)
+            item.setData(0x0100, i)
+            list_widget.addItem(item)
+
+    manage_button.clicked.connect(on_manage)
+    buttons_layout.addWidget(manage_button)
+
+    # Add existing OK/Cancel buttons
+    ok_button = QPushButton("OK")
+    cancel_button = QPushButton("Cancel")
+    buttons_layout.addWidget(ok_button)
+    buttons_layout.addWidget(cancel_button)
+    layout.addLayout(buttons_layout)
+
+    def on_ok():
+        item = list_widget.currentItem()
+        if not item:
+            # If nothing is selected, consider it a "cancel"
+            dialog.reject()
+            return
+        chosen_index = item.data(0x0100)
+        dialog.done(chosen_index)
+
+    def on_cancel():
+        dialog.reject()
+
+    ok_button.clicked.connect(on_ok)
+    cancel_button.clicked.connect(on_cancel)
+
+    # If OK is pressed, dialog.done(...) uses the item index as the return code
+    result = dialog.exec()
+
+    # If a valid index was returned, return that ProfileConfig
+    if 0 <= result < len(profiles):
+        return profiles[result]
+    return None
