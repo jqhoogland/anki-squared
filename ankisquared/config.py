@@ -62,6 +62,7 @@ class Config:
 
     buttons: List[ButtonConfig] = field(default_factory=list)
     profiles: List[ProfileConfig] = field(default_factory=list)
+    active_profile_name: str = ""
 
     @classmethod
     def from_conf(cls):
@@ -98,6 +99,7 @@ class Config:
             openai_api_key=conf.get("openai_api_key", ""),
             buttons=button_configs,
             profiles=profile_configs,
+            active_profile_name=conf.get("active_profile_name", profile_configs[0].name),
         )
         config.cast()
         return config
@@ -127,3 +129,13 @@ class Config:
 
         for profile in self.profiles:
             profile.cast()
+
+    def get_active_profile(self):
+        return next(
+            (p for p in self.profiles if p.name == self.active_profile_name),
+            self.profiles[0],
+        )
+
+    def set_active_profile(self, profile: ProfileConfig):
+        self.active_profile_name = profile.name
+        self.save_to_conf()

@@ -108,15 +108,11 @@ def did_load_editor(buttons: list, editor: Editor):
 
     # Load your config
     editor.config = Config.from_conf()
-    editor.active_profile = editor.config.profiles[0]
+    # Find active profile from config, fallback to first profile if not set
 
     def on_profile_clicked(profile):
-        print(f"on_profile_clicked: {profile}")
-        editor.active_profile = profile
-        # chosen_profile = choose_profile_dialog(editor)
-        # if chosen_profile:
-        #     editor.active_profile = chosen_profile
-        #     profile_btn.setText(chosen_profile.name)
+        editor.config.set_active_profile(profile)
+        editor.profile_chooser.selected_profile = profile
 
     topbar = editor.parentWindow.deck_chooser._widget.parent()
 
@@ -132,13 +128,15 @@ def did_load_editor(buttons: list, editor: Editor):
         editor,
         widget=profile_area,
         on_profile_changed=on_profile_clicked,
-        starting_profile=editor.active_profile,
+        starting_profile=editor.config.get_active_profile(),
     )
     editor.profile_chooser.show()
 
     def unified_action(editor: Editor, action_config: ButtonConfig):
         if not is_valid_field(editor):
             return
+
+        selected_profile = editor.profile_chooser.selected_profile
 
         current_field = editor.currentField
         endpoint = action_config.endpoint
@@ -153,7 +151,7 @@ def did_load_editor(buttons: list, editor: Editor):
         dialog = QInputDialog(editor.parentWindow)
         dialog.setWindowTitle(action_config.name)
         dialog.setLabelText(
-            f"{render_button_as_text(action_config, editor.config)}\n\nEnter your query:"
+            f"{render_button_as_text(action_config, selected_profile)}\n\nEnter your query:"
         )
         dialog.setTextValue(query)
         dialog.setMinimumWidth(600)
@@ -169,9 +167,6 @@ def did_load_editor(buttons: list, editor: Editor):
 
         # Decide which profile to use. If you stored an active profile above, use that.
         # Otherwise fallback to the first one, etc.
-        chosen_profile = (
-            getattr(editor, "active_profile", None) or editor.config.profiles[0]
-        )
 
         # Merge config fields for the endpoint call
         config_dict = asdict(editor.config)
@@ -179,7 +174,7 @@ def did_load_editor(buttons: list, editor: Editor):
         config_dict.pop("profiles", None)
 
         # Convert the chosen profile to dict
-        profile_dict = asdict(chosen_profile)
+        profile_dict = asdict(selected_profile)
 
         button_dict = asdict(action_config)
 
