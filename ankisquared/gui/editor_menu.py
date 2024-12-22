@@ -1,3 +1,4 @@
+import os
 from dataclasses import asdict
 
 from ankisquared.gui.profilechooser import ProfileChooser
@@ -36,7 +37,7 @@ def update_field(editor: Editor, suggestion: Suggestion, current_field: int):
     editor.loadNote()
 
 
-def bulk_complete_note(editor: Editor):
+def bulk_complete_note(editor: Editor, check=False):
     """Complete all configured fields for the current note."""
     if not editor.note:
         showWarning("No note selected!")
@@ -65,7 +66,7 @@ def bulk_complete_note(editor: Editor):
 
         from pprint import pprint   
         flds = editor.note.note_type()['flds']
-        field_idx = next(f for f in flds if f['name'] == field_name)
+        field_idx = next(f for f in flds if f['name'] == field_name)['ord']
 
         if not field_idx:
             showWarning(f"Could not update {field_name}")
@@ -82,7 +83,8 @@ def bulk_complete_note(editor: Editor):
                 tip="",
                 endpoint=completion.endpoint,
                 prompt=completion.prompt
-            )
+            ),
+            check=check
         )
     
     # Restore original field focus
@@ -139,7 +141,9 @@ def unified_action(editor: Editor, action_config: ButtonConfig, check=False):
     # Merge everything
     merged = {**config_dict, **profile_dict, **button_dict}
 
-    if endpoint == "Bing":
+    if os.environ.get("DEBUG", "0") == "1":
+        suggestion = Suggestion(type="text", content=f"[Debug {endpoint}] {query}")
+    elif endpoint == "Bing":
         suggestion = bing.get_images(query, **merged)
     elif endpoint == "Forvo":
         suggestion = forvo.get_pronunciations(query, **merged)
