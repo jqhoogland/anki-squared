@@ -72,7 +72,9 @@ def retrieve_and_escape_url(editor: Editor, url: str) -> str:
     return html.escape(url, quote=False)
 
 
-def render_button_as_text(button_config: ButtonConfig, profile_config: ProfileConfig) -> str:
+def render_button_as_text(
+    button_config: ButtonConfig, profile_config: ProfileConfig
+) -> str:
     print("Opened 'Confirm Suggestion Request' Dialog: ", button_config, profile_config)
     profile_dict = asdict(profile_config)
     profile_dict["profile_name"] = profile_dict.pop("name")
@@ -80,7 +82,9 @@ def render_button_as_text(button_config: ButtonConfig, profile_config: ProfileCo
     if button_config.endpoint == Endpoint.OPENAI:
         return f"System Prompt ({profile_config.model}): \n\n{profile_config.system_prompt.format(**profile_dict, **asdict(button_config))}"
     else:
-        return button_config.tip + (f"(Language: {profile_config.language})" if profile_config.language else "")
+        return button_config.tip + (
+            f"(Language: {profile_config.language})" if profile_config.language else ""
+        )
 
 
 def get_value(widget):

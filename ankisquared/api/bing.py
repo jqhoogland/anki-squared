@@ -96,8 +96,8 @@ def get_images(
         list: List of thumbnail URLs
     """
 
-    setlang = language 
-    
+    setlang = language
+
     if language in LANGUAGES:
         setlang = LANGUAGES[language]
     elif language in LANGUAGES.values():
@@ -106,7 +106,7 @@ def get_images(
         if language:
             showWarning(f"Invalid language: {language} - using default en")
         setlang = "en"
-    
+
     with create_session() as session:
         urls = [
             r["thumbnail"]

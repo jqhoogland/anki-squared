@@ -99,7 +99,9 @@ class Config:
             openai_api_key=conf.get("openai_api_key", ""),
             buttons=button_configs,
             profiles=profile_configs,
-            active_profile_name=conf.get("active_profile_name", profile_configs[0].name),
+            active_profile_name=conf.get(
+                "active_profile_name", profile_configs[0].name
+            ),
         )
         config.cast()
         return config
