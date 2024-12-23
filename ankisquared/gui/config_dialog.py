@@ -1,6 +1,9 @@
+import copy
 from dataclasses import fields
+from pprint import pprint
 from typing import Dict, Literal, Tuple, Union, get_args, get_origin
 
+from ankisquared.utils import pretty_print_widget
 from aqt import mw
 from aqt.qt import (
     QComboBox,
@@ -13,6 +16,7 @@ from aqt.qt import (
     QSpinBox,
     QTabWidget,
     QTextEdit,
+    QPlainTextEdit,
     QVBoxLayout,
     QWidget,
     QGroupBox,
@@ -214,9 +218,8 @@ def generate_note_template_tab(config: Config, parent: QWidget = None) -> QWidge
     main_widget = QWidget(parent)
     main_layout = QVBoxLayout(main_widget)
 
-    # Store widgets in a dict of dicts:
-    # fields_map[note_type_id][field_name] = (group_box, endpoint_combo, prompt_widget)
-    main_widget.fields_map = {}
+    # In-memory data model to store field states
+    main_widget.fields_data = {}
 
     # Create and add note type selector at the top, outside scroll area
     note_type_combo = QComboBox()
@@ -248,6 +251,10 @@ def generate_note_template_tab(config: Config, parent: QWidget = None) -> QWidge
     def update_fields():
         note_type_id = int(note_type_combo.currentData())
         note_type = mw.col.models.get(note_type_id)
+        print("Editing", note_type["name"], note_type_id)
+
+        # Initialize sub-dict for the selected note type
+        main_widget.fields_data[note_type_id] = main_widget.fields_data.get(note_type_id, {})
 
         # Clear any existing form fields
         while fields_layout.count():
@@ -255,16 +262,59 @@ def generate_note_template_tab(config: Config, parent: QWidget = None) -> QWidge
             if item.widget():
                 item.widget().deleteLater()
 
-        # Initialize sub-dict for the selected note type
-        main_widget.fields_map[note_type_id] = {}
-
         # Find or create a matching note template in config
         template = next(
             (t for t in config.note_templates if t.note_type_id == note_type_id),
             None,
         )
-        # If there's no existing template in config, don't create it yet.
-        # We'll generate a new one later when saving if needed.
+
+        print("Fields", [f["name"] for f in note_type["flds"]] + ["Tags"])
+
+        def create_field_group(field_name, completion):
+            field_group = QGroupBox(field_name)
+            field_group.setCheckable(True)
+            field_group.setChecked(completion.enabled)
+
+            inner_widget = QWidget()
+            inner_layout = QVBoxLayout(inner_widget)
+
+            # Create a new QComboBox for each field
+            endpoint_combo = QComboBox()
+            for ep in Endpoint:
+                endpoint_combo.addItem(ep.value)
+            endpoint_combo.setCurrentText(completion.endpoint)
+            inner_layout.addWidget(endpoint_combo)
+
+            def on_endpoint_changed():
+                current_endpoint = endpoint_combo.currentText()
+                print(f"ENDPOINT {note_type_id} {field_name} {current_endpoint}")
+                main_widget.fields_data[note_type_id][field_name]["endpoint"] = current_endpoint
+
+            endpoint_combo.currentIndexChanged.connect(on_endpoint_changed)
+
+            # Create a new QTextEdit for each field
+            prompt_widget = QTextEdit()
+            prompt_widget.setText(completion.prompt)
+            inner_layout.addWidget(prompt_widget)
+
+            def on_prompt_changed():
+                current_prompt = prompt_widget.toPlainText()
+                print(f"PROMPT {note_type_id} {field_name} {current_prompt}")
+                main_widget.fields_data[note_type_id][field_name]["prompt"] = current_prompt
+
+            prompt_widget.textChanged.connect(on_prompt_changed)
+
+            field_group_layout = QVBoxLayout(field_group)
+            field_group_layout.addWidget(inner_widget)
+
+            def toggle_inner_widget(expanded):
+                print(f"TOGGLED {note_type_id} {field_name} {expanded}")
+                main_widget.fields_data[note_type_id][field_name]["enabled"] = expanded
+
+            field_group.toggled.connect(toggle_inner_widget)
+            toggle_inner_widget(completion.enabled)
+
+            return field_group
 
         for field in note_type["flds"] + [{"name": "Tags"}]:
             field_name = field["name"]
@@ -275,54 +325,15 @@ def generate_note_template_tab(config: Config, parent: QWidget = None) -> QWidge
                 else FieldCompletion()
             )
 
-            field_group = QGroupBox(field_name)
-            field_group.setCheckable(True)
-            field_group.setChecked(completion.enabled)
+            # Store initial state in the in-memory data model
+            main_widget.fields_data[note_type_id][field_name] = {
+                "enabled": completion.enabled,
+                "endpoint": completion.endpoint,
+                "prompt": completion.prompt,
+            }
 
-            inner_widget = QWidget()
-            inner_layout = QVBoxLayout(inner_widget)
-
-            endpoint_combo = QComboBox()
-            for ep in Endpoint:
-                endpoint_combo.addItem(ep.value)
-            endpoint_combo.setCurrentText(completion.endpoint)
-            inner_layout.addWidget(endpoint_combo)
-
-            prompt_widget = QTextEdit()
-            prompt_widget.setText(completion.prompt)
-            inner_layout.addWidget(prompt_widget)
-
-            # Changing endpoint could trigger a different UI approach if needed
-            def on_endpoint_changed():
-                # Example: if you want to recreate widgets or handle special logic
-                pass
-
-            endpoint_combo.currentIndexChanged.connect(on_endpoint_changed)
-
-            field_group_layout = QVBoxLayout(field_group)
-            field_group_layout.addWidget(inner_widget)
-
-            def toggle_inner_widget(expanded):
-                pass
-                # inner_widget.setVisible(expanded)
-                # sp = field_group.sizePolicy()
-                # if expanded:
-                #     sp.setVerticalPolicy(QSizePolicy.Policy.Preferred)
-                # else:
-                #     sp.setVerticalPolicy(QSizePolicy.Policy.Minimum)
-                # field_group.setSizePolicy(sp)
-
-            field_group.toggled.connect(toggle_inner_widget)
-            toggle_inner_widget(completion.enabled)
-
+            field_group = create_field_group(field_name, completion)
             fields_layout.addWidget(field_group)
-
-            # Store references in fields_map so we can read them later when saving
-            main_widget.fields_map[note_type_id][field_name] = (
-                field_group,
-                endpoint_combo,
-                prompt_widget,
-            )
 
     note_type_combo.currentIndexChanged.connect(update_fields)
     update_fields()
@@ -501,7 +512,7 @@ def generate_config_dialog(config: Config):
                     setattr(button_conf, k, get_value(w))
 
         # For each note_type_id in fields_map, read the UI and update or create a template
-        note_templates_data = note_templates_tab.fields_map
+        note_templates_data = note_templates_tab.fields_data
         for note_type_id, fields_dict in note_templates_data.items():
             # See if there's an existing template for that note type
             existing_template = next(
@@ -520,14 +531,10 @@ def generate_config_dialog(config: Config):
                 config.note_templates.append(existing_template)
 
             # For each field, read the widgets
-            for field_name, (
-                group_box,
-                endpoint_combo,
-                prompt_widget,
-            ) in fields_dict.items():
-                enabled = group_box.isChecked()
-                endpoint = endpoint_combo.currentText()
-                prompt = prompt_widget.toPlainText()
+            for field_name, field_data in fields_dict.items():
+                enabled = field_data["enabled"]
+                endpoint = field_data["endpoint"]
+                prompt = field_data["prompt"]
 
                 # Build a new FieldCompletion object or dict
                 existing_template.field_completions[field_name] = FieldCompletion(
@@ -535,6 +542,8 @@ def generate_config_dialog(config: Config):
                     endpoint=endpoint,
                     prompt=prompt,
                 )
+
+            print(existing_template)
 
         print("Saving config...")
         config.save_to_conf()

@@ -64,33 +64,6 @@ def bulk_complete_note(editor: Editor, check=False):
     # Store original field to restore focus
     original_field = editor.currentField
 
-    # TODO: Do this async
-    for field_name, completion in template.field_completions.items():
-        if not completion.enabled or completion.endpoint == Endpoint.OPENAI:
-            continue
-
-        flds = editor.note.note_type()["flds"]
-        field_idx = next(f for f in flds if f["name"] == field_name)["ord"]
-
-        if not field_idx:
-            showWarning(f"Could not update {field_name}")
-            break
-
-        editor.currentField = field_idx
-
-        # Reuse existing unified_action logic
-        get_suggestion_and_update_current_field(
-            editor,
-            ButtonConfig(
-                name=f"Auto {field_name}",
-                icon="",
-                tip="",
-                endpoint=completion.endpoint,
-                prompt=completion.prompt,
-            ),
-            check=check,
-        )
-
     # OpenAI queries
     openai_flds = [
         fn
@@ -134,14 +107,42 @@ def bulk_complete_note(editor: Editor, check=False):
             if field_name == "Tags":
                 field_idx = len(editor.note.fields)
             else:
-                flds = editor.note.note_type()["flds"]
-                field_idx = next(f for f in flds if f["name"] == field_name)["ord"]
-
-                if not field_idx:
-                    showWarning(f"Could not update {field_name}")
+                try:
+                    flds = editor.note.note_type()["flds"]
+                    field_idx = next(f for f in flds if f["name"] == field_name)["ord"]
+                except StopIteration:
+                    print(f"Could not find field {field_name} in note type {note_type_id}")
                     continue
 
             update_field(editor, suggestion, field_idx)
+
+    # TODO: Do this async
+    for field_name, completion in template.field_completions.items():
+        if not completion.enabled or completion.endpoint == Endpoint.OPENAI:
+            continue
+
+        flds = editor.note.note_type()["flds"]
+
+        try:
+            field_idx = next(f for f in flds if f["name"] == field_name)["ord"]
+        except StopIteration:
+            print(f"Could not find field {field_name} in note type {note_type_id}")
+            continue
+
+        editor.currentField = field_idx
+
+        # Reuse existing unified_action logic
+        get_suggestion_and_update_current_field(
+            editor,
+            ButtonConfig(
+                name=f"Auto {field_name}",
+                icon="",
+                tip="",
+                endpoint=completion.endpoint,
+                prompt=completion.prompt,
+            ),
+            check=check,
+        )
 
     # Restore original field focus
     editor.currentField = original_field

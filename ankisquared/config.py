@@ -78,6 +78,15 @@ class ProfileConfig:
             f"    system_prompt='{self.system_prompt}'\n"
             f")"
         )
+    
+    def __setattr__(self, name, value):
+        if name == "num_images":
+            value = int(value)
+        elif name == "max_tokens":
+            value = int(value)
+        elif name == "temperature":
+            value = float(value)
+        super().__setattr__(name, value)
 
 
 @dataclass
@@ -85,9 +94,6 @@ class FieldCompletion:
     enabled: bool = True
     endpoint: Endpoint = Endpoint.OPENAI
     prompt: str = "{0}"
-
-    def __post_init__(self):
-        pass
 
     def __repr__(self) -> str:
         return (
