@@ -33,7 +33,12 @@ def update_field(editor: Editor, suggestion: Suggestion, current_field: int):
         showWarning("No content found!")
         return
 
-    editor.note.fields[current_field] = content
+    if current_field == len(editor.note.fields):
+        tags = [t.strip() for t in content.split()]
+        editor.note.tags.extend(tags)
+    else:
+        editor.note.fields[current_field] = content
+
     editor.loadNote()
 
 
@@ -126,12 +131,15 @@ def bulk_complete_note(editor: Editor, check=False):
 
         # Update each field with its completion
         for field_name, suggestion in suggestions.items():
-            flds = editor.note.note_type()["flds"]
-            field_idx = next(f for f in flds if f["name"] == field_name)["ord"]
+            if field_name == "Tags":
+                field_idx = len(editor.note.fields)
+            else:
+                flds = editor.note.note_type()["flds"]
+                field_idx = next(f for f in flds if f["name"] == field_name)["ord"]
 
-            if not field_idx:
-                showWarning(f"Could not update {field_name}")
-                continue
+                if not field_idx:
+                    showWarning(f"Could not update {field_name}")
+                    continue
 
             update_field(editor, suggestion, field_idx)
 

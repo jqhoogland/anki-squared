@@ -75,7 +75,6 @@ def retrieve_and_escape_url(editor: Editor, url: str) -> str:
 def render_button_as_text(
     button_config: ButtonConfig, profile_config: ProfileConfig
 ) -> str:
-    print("Opened 'Confirm Suggestion Request' Dialog: ", button_config, profile_config)
     profile_dict = asdict(profile_config)
     profile_dict["profile_name"] = profile_dict.pop("name")
 

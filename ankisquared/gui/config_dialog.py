@@ -266,7 +266,7 @@ def generate_note_template_tab(config: Config, parent: QWidget = None) -> QWidge
         # If there's no existing template in config, don't create it yet.
         # We'll generate a new one later when saving if needed.
 
-        for field in note_type["flds"]:
+        for field in note_type["flds"] + [{"name": "Tags"}]:
             field_name = field["name"]
             # Either get an existing FieldCompletion or a blank one
             completion = (
