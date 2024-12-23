@@ -1,9 +1,7 @@
-import copy
 from dataclasses import fields
 from pprint import pprint
-from typing import Dict, Literal, Tuple, Union, get_args, get_origin
+from typing import Dict, Literal, Tuple, get_args, get_origin
 
-from ankisquared.utils import pretty_print_widget
 from aqt import mw
 from aqt.qt import (
     QComboBox,
@@ -16,12 +14,9 @@ from aqt.qt import (
     QSpinBox,
     QTabWidget,
     QTextEdit,
-    QPlainTextEdit,
     QVBoxLayout,
     QWidget,
     QGroupBox,
-    QCheckBox,
-    QSizePolicy,
     QScrollArea,
 )
 
@@ -237,6 +232,24 @@ def generate_note_template_tab(config: Config, parent: QWidget = None) -> QWidge
     main_layout.addWidget(QLabel("Note Type:"))
     main_layout.addWidget(note_type_combo)
 
+    # Add a QTextEdit for the shared prompt
+    current_template = next(
+        (
+            t
+            for t in config.note_templates
+            if t.note_type_id == note_type_combo.currentData()
+        ),
+        None,
+    )
+    shared_prompt_label = QLabel("Shared Prompt:")
+    shared_prompt_widget = QTextEdit()
+    shared_prompt_widget.setText(
+        current_template.shared_prompt if current_template else ""
+    )
+
+    main_layout.addWidget(shared_prompt_label)
+    main_layout.addWidget(shared_prompt_widget)
+
     # Create scroll area for fields
     scroll_area = QScrollArea()
     scroll_area.setWidgetResizable(True)
@@ -248,25 +261,39 @@ def generate_note_template_tab(config: Config, parent: QWidget = None) -> QWidge
     fields_layout = QVBoxLayout(fields_widget)
     scroll_layout.addWidget(fields_widget)
 
+    def update_shared_prompt():
+        note_type_id = int(note_type_combo.currentData())
+        main_widget.fields_data[note_type_id][
+            "shared_prompt"
+        ] = shared_prompt_widget.toPlainText()
+
+    shared_prompt_widget.textChanged.connect(update_shared_prompt)
+
     def update_fields():
         note_type_id = int(note_type_combo.currentData())
         note_type = mw.col.models.get(note_type_id)
-        print("Editing", note_type["name"], note_type_id)
-
-        # Initialize sub-dict for the selected note type
-        main_widget.fields_data[note_type_id] = main_widget.fields_data.get(note_type_id, {})
-
-        # Clear any existing form fields
-        while fields_layout.count():
-            item = fields_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
 
         # Find or create a matching note template in config
         template = next(
             (t for t in config.note_templates if t.note_type_id == note_type_id),
             None,
         )
+        # Initialize sub-dict for the selected note type
+        main_widget.fields_data[note_type_id] = main_widget.fields_data.get(
+            note_type_id, {}
+        )
+        main_widget.fields_data[note_type_id]["shared_prompt"] = (
+            template.shared_prompt if template else ""
+        )
+        shared_prompt_widget.setText(
+            main_widget.fields_data[note_type_id]["shared_prompt"]
+        )
+
+        # Clear any existing form fields
+        while fields_layout.count():
+            item = fields_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
 
         print("Fields", [f["name"] for f in note_type["flds"]] + ["Tags"])
 
@@ -287,8 +314,9 @@ def generate_note_template_tab(config: Config, parent: QWidget = None) -> QWidge
 
             def on_endpoint_changed():
                 current_endpoint = endpoint_combo.currentText()
-                print(f"ENDPOINT {note_type_id} {field_name} {current_endpoint}")
-                main_widget.fields_data[note_type_id][field_name]["endpoint"] = current_endpoint
+                main_widget.fields_data[note_type_id][field_name][
+                    "endpoint"
+                ] = current_endpoint
 
             endpoint_combo.currentIndexChanged.connect(on_endpoint_changed)
 
@@ -299,8 +327,9 @@ def generate_note_template_tab(config: Config, parent: QWidget = None) -> QWidge
 
             def on_prompt_changed():
                 current_prompt = prompt_widget.toPlainText()
-                print(f"PROMPT {note_type_id} {field_name} {current_prompt}")
-                main_widget.fields_data[note_type_id][field_name]["prompt"] = current_prompt
+                main_widget.fields_data[note_type_id][field_name][
+                    "prompt"
+                ] = current_prompt
 
             prompt_widget.textChanged.connect(on_prompt_changed)
 
@@ -308,7 +337,6 @@ def generate_note_template_tab(config: Config, parent: QWidget = None) -> QWidge
             field_group_layout.addWidget(inner_widget)
 
             def toggle_inner_widget(expanded):
-                print(f"TOGGLED {note_type_id} {field_name} {expanded}")
                 main_widget.fields_data[note_type_id][field_name]["enabled"] = expanded
 
             field_group.toggled.connect(toggle_inner_widget)
@@ -519,16 +547,19 @@ def generate_config_dialog(config: Config):
                 (t for t in config.note_templates if t.note_type_id == note_type_id),
                 None,
             )
+            print(existing_template)
+            pprint(fields_dict)
+            shared_prompt = fields_dict.pop("shared_prompt", "")
+
             if not existing_template:
-                # Create a new one if needed (depends on how you define 'NoteTemplate')
-                # Example: config.note_templates might store items that look like:
-                #   NoteTypeTemplate(note_type_id=..., field_completions={})
-                # Adjust the class or dict usage as needed.
                 existing_template = NoteTypeTemplate(
                     note_type_id=note_type_id,
+                    shared_prompt=shared_prompt,
                     field_completions={},
                 )
                 config.note_templates.append(existing_template)
+
+            existing_template.shared_prompt = shared_prompt
 
             # For each field, read the widgets
             for field_name, field_data in fields_dict.items():
@@ -542,8 +573,6 @@ def generate_config_dialog(config: Config):
                     endpoint=endpoint,
                     prompt=prompt,
                 )
-
-            print(existing_template)
 
         print("Saving config...")
         config.save_to_conf()

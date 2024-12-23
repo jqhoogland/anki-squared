@@ -83,15 +83,18 @@ def bulk_complete_note(editor: Editor, check=False):
     if openai_flds:
         # Build queries dictionary
         queries = {}
+
+        field_names = [field["name"] for field in editor.note.note_type()["flds"]]
+        field_values = [clean_html(f) for f in editor.note.fields]
+        fields_dict = dict(zip(field_names, field_values))
+
         for field_name in openai_flds:
             completion = template.field_completions[field_name]
-            field_names = [field["name"] for field in editor.note.note_type()["flds"]]
-            field_values = [clean_html(f) for f in editor.note.fields]
-            fields_dict = dict(zip(field_names, field_values))
-
-            # Format the prompt with field values
             query = completion.prompt.format(*field_values, **fields_dict, **merged)
             queries[field_name] = query
+
+        system_prompt = merged.pop("system_prompt", "") + "\n" + template.shared_prompt
+        system_prompt = system_prompt.format(*field_values, **fields_dict, **merged)
 
         # Get completions for all fields at once
         if os.environ.get("DEBUG", "0") == "1":
@@ -100,18 +103,24 @@ def bulk_complete_note(editor: Editor, check=False):
                 for field, query in queries.items()
             }
         else:
-            suggestions = openai.get_completions(queries=queries, **merged)
+            suggestions = openai.get_completions(
+                queries=queries, system_prompt=system_prompt, **merged
+            )
 
         # Update each field with its completion
         for field_name, suggestion in suggestions.items():
             if field_name == "Tags":
                 field_idx = len(editor.note.fields)
             else:
-                try:
-                    flds = editor.note.note_type()["flds"]
-                    field_idx = next(f for f in flds if f["name"] == field_name)["ord"]
-                except StopIteration:
-                    print(f"Could not find field {field_name} in note type {note_type_id}")
+                flds = editor.note.note_type()["flds"]
+                field_idx = next(
+                    (f for f in flds if f["name"] == field_name), {"ord": None}
+                )["ord"]
+
+                if field_idx is None:
+                    print(
+                        f"Could not find field {field_name} in note type {note_type_id}"
+                    )
                     continue
 
             update_field(editor, suggestion, field_idx)
@@ -122,10 +131,11 @@ def bulk_complete_note(editor: Editor, check=False):
             continue
 
         flds = editor.note.note_type()["flds"]
+        field_idx = next((f for f in flds if f["name"] == field_name), {"ord": None})[
+            "ord"
+        ]
 
-        try:
-            field_idx = next(f for f in flds if f["name"] == field_name)["ord"]
-        except StopIteration:
+        if field_idx is None:
             print(f"Could not find field {field_name} in note type {note_type_id}")
             continue
 
@@ -148,14 +158,16 @@ def bulk_complete_note(editor: Editor, check=False):
     editor.currentField = original_field
 
 
-def get_suggestion(editor: Editor, action_config: ButtonConfig, check: bool = False) -> Optional[Suggestion]:
+def get_suggestion(
+    editor: Editor, action_config: ButtonConfig, check: bool = False
+) -> Optional[Suggestion]:
     """Get a suggestion from the configured endpoint.
-    
+
     Args:
         editor: The Anki editor instance
         action_config: Button configuration containing endpoint and prompt details
         check: Whether to show confirmation dialog
-        
+
     Returns:
         Suggestion object if successful, None otherwise
     """
@@ -217,7 +229,9 @@ def get_suggestion(editor: Editor, action_config: ButtonConfig, check: bool = Fa
     return suggestion
 
 
-def get_suggestion_and_update_current_field(editor: Editor, action_config: ButtonConfig, check=False):
+def get_suggestion_and_update_current_field(
+    editor: Editor, action_config: ButtonConfig, check=False
+):
     suggestion = get_suggestion(editor, action_config, check)
 
     if not suggestion:
@@ -270,7 +284,9 @@ def did_load_editor(buttons: list, editor: Editor):
         button = editor.addButton(
             icon=icon,
             label=label,
-            func=lambda s=editor: get_suggestion_and_update_current_field(s, button_config, check=True),
+            func=lambda s=editor: get_suggestion_and_update_current_field(
+                s, button_config, check=True
+            ),
             cmd=button_config.cmd,
             tip=button_config.tip,
             keys=keys[0],
@@ -281,7 +297,9 @@ def did_load_editor(buttons: list, editor: Editor):
             for key in keys[1:]:
                 fast_shortcut = QShortcut(QKeySequence(key), editor.widget)
                 fast_shortcut.activated.connect(
-                    lambda: get_suggestion_and_update_current_field(editor, button_config, check=False)
+                    lambda: get_suggestion_and_update_current_field(
+                        editor, button_config, check=False
+                    )
                 )
 
         return button

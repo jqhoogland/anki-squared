@@ -78,7 +78,7 @@ class ProfileConfig:
             f"    system_prompt='{self.system_prompt}'\n"
             f")"
         )
-    
+
     def __setattr__(self, name, value):
         if name == "num_images":
             value = int(value)
@@ -109,6 +109,7 @@ class FieldCompletion:
 class NoteTypeTemplate:
     note_type_id: int
     field_completions: Dict[str, FieldCompletion]
+    shared_prompt: str = ""
 
     @property
     def name(self):
@@ -129,6 +130,7 @@ class NoteTypeTemplate:
         return (
             f"NoteTypeTemplate(\n"
             f"    note_type_id={self.note_type_id},\n"
+            f"    shared_prompt='{self.shared_prompt}',\n"
             f"    field_completions={{\n"
             f"{field_completions_str}\n"
             f"    }}\n"
