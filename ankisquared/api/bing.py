@@ -2,7 +2,6 @@ from contextlib import contextmanager
 from typing import Dict, Iterator, Optional
 
 import requests
-from ankisquared.consts import LANGUAGES
 from aqt.utils import showWarning
 from ankisquared.api.utils import Suggestion
 
@@ -39,7 +38,7 @@ def search_bing_images(
     session: requests.Session,
     query: str,
     subscription_key: str,
-    setlang: str = "en",
+    mkt: str = "en-US",
     num_results: int = 10,
 ) -> Iterator[Dict[str, Optional[str]]]:
     """Search for images using Bing's Image Search API.
@@ -59,11 +58,10 @@ def search_bing_images(
     }
     params = {
         "q": query,
-        "setlang": setlang,
+        "mkt": mkt,
         "count": num_results,
     }
 
-    print("GET", BING_API_ENDPOINT, params)
     response = session.get(BING_API_ENDPOINT, headers=headers, params=params)
 
     if response.status_code != 200:
@@ -95,18 +93,6 @@ def get_images(
     Returns:
         list: List of thumbnail URLs
     """
-
-    setlang = language
-
-    if language in LANGUAGES:
-        setlang = LANGUAGES[language]
-    elif language in LANGUAGES.values():
-        setlang = language
-    else:
-        if language:
-            showWarning(f"Invalid language: {language} - using default en")
-        setlang = "en"
-
     with create_session() as session:
         urls = [
             r["thumbnail"]
@@ -114,7 +100,7 @@ def get_images(
                 session=session,
                 query=query,
                 subscription_key=bing_api_key,
-                setlang=setlang,
+                mkt=language,
                 num_results=num_images,
             )
         ]

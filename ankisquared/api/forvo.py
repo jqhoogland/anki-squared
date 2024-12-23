@@ -34,7 +34,6 @@ def get_pronunciations(
     )
 
     try:
-        print("GET", base_url.split("/key/")[0])
         response = requests.get(base_url, headers=headers)
 
         if response.status_code == 200:
