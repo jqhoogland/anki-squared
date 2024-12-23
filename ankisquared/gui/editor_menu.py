@@ -1,5 +1,6 @@
 import os
 from dataclasses import asdict
+from typing import Optional
 
 from ankisquared.gui.profilechooser import ProfileChooser
 from aqt.editor import Editor
@@ -34,8 +35,7 @@ def update_field(editor: Editor, suggestion: Suggestion, current_field: int):
         return
 
     if current_field == len(editor.note.fields):
-        tags = [t.strip() for t in content.split()]
-        editor.note.tags.extend(tags)
+        editor.note.tags.extend(t.strip() for t in content.split())
     else:
         editor.note.fields[current_field] = content
 
@@ -79,7 +79,7 @@ def bulk_complete_note(editor: Editor, check=False):
         editor.currentField = field_idx
 
         # Reuse existing unified_action logic
-        unified_action(
+        get_suggestion_and_update_current_field(
             editor,
             ButtonConfig(
                 name=f"Auto {field_name}",
@@ -147,13 +147,22 @@ def bulk_complete_note(editor: Editor, check=False):
     editor.currentField = original_field
 
 
-def unified_action(editor: Editor, action_config: ButtonConfig, check=False):
+def get_suggestion(editor: Editor, action_config: ButtonConfig, check: bool = False) -> Optional[Suggestion]:
+    """Get a suggestion from the configured endpoint.
+    
+    Args:
+        editor: The Anki editor instance
+        action_config: Button configuration containing endpoint and prompt details
+        check: Whether to show confirmation dialog
+        
+    Returns:
+        Suggestion object if successful, None otherwise
+    """
     if not is_valid_field(editor):
-        return
+        return None
 
     selected_profile = editor.profile_chooser.selected_profile
 
-    current_field = editor.currentField
     endpoint = action_config.endpoint
     prompt_raw = action_config.prompt
 
@@ -163,31 +172,26 @@ def unified_action(editor: Editor, action_config: ButtonConfig, check=False):
 
     query = prompt_raw.format(*field_values, **fields_dict)
 
-    dialog = QInputDialog(editor.parentWindow)
-    dialog.setWindowTitle(action_config.name)
-    dialog.setLabelText(
-        f"{render_button_as_text(action_config, selected_profile)}\n\nEnter your query:"
-    )
-    dialog.setTextValue(query)
-    dialog.setMinimumWidth(600)
-    dialog.setMinimumHeight(300)
-    dialog.resize(600, 300)
-    dialog.setFixedSize(600, 300)
-
     if check:
-        ok = dialog.exec()
+        dialog = QInputDialog(editor.parentWindow)
+        dialog.setWindowTitle(action_config.name)
+        dialog.setLabelText(
+            f"{render_button_as_text(action_config, selected_profile)}\n\nEnter your query:"
+        )
+        dialog.setTextValue(query)
+        dialog.setMinimumWidth(600)
+        dialog.setMinimumHeight(300)
+        dialog.resize(600, 300)
+        dialog.setFixedSize(600, 300)
+
+        if not dialog.exec() or not dialog.textValue():
+            return None
         query = dialog.textValue()
 
-        if not ok or not query:
-            return
-
-    # Decide which profile to use. If you stored an active profile above, use that.
-    # Otherwise fallback to the first one, etc.
-
-    # Merge config fields for the endpoint call
+    # Merge configurations
     config_dict = asdict(editor.config)
-    # “profiles” is a list, so remove it from top-level if merging
     config_dict.pop("profiles", None)
+    merged = {**config_dict, **asdict(selected_profile), **asdict(action_config)}
 
     # Convert the chosen profile to dict
     profile_dict = asdict(selected_profile)
@@ -207,10 +211,21 @@ def unified_action(editor: Editor, action_config: ButtonConfig, check=False):
         suggestion = openai.get_completion(query, **merged)
     else:
         showWarning(f"Unknown endpoint: {endpoint}")
+        return None
+
+    return suggestion
+
+
+def get_suggestion_and_update_current_field(editor: Editor, action_config: ButtonConfig, check=False):
+    suggestion = get_suggestion(editor, action_config, check)
+
+    if not suggestion:
         return
 
+    current_field = editor.currentField
     print(f"Updating field={current_field} with suggestion={suggestion}")
     update_field(editor, suggestion, current_field)
+    return suggestion
 
 
 def did_load_editor(buttons: list, editor: Editor):
@@ -254,7 +269,7 @@ def did_load_editor(buttons: list, editor: Editor):
         button = editor.addButton(
             icon=icon,
             label=label,
-            func=lambda s=editor: unified_action(s, button_config, check=True),
+            func=lambda s=editor: get_suggestion_and_update_current_field(s, button_config, check=True),
             cmd=button_config.cmd,
             tip=button_config.tip,
             keys=keys[0],
@@ -265,7 +280,7 @@ def did_load_editor(buttons: list, editor: Editor):
             for key in keys[1:]:
                 fast_shortcut = QShortcut(QKeySequence(key), editor.widget)
                 fast_shortcut.activated.connect(
-                    lambda: unified_action(editor, button_config, check=False)
+                    lambda: get_suggestion_and_update_current_field(editor, button_config, check=False)
                 )
 
         return button
