@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass, field
-from pprint import pp
+from pprint import pp, pprint
 from typing import Annotated, Dict, List, Literal, Optional
 from enum import Enum
 
@@ -28,8 +28,21 @@ class ButtonConfig:
     def cmd(self) -> str:
         return f"suggest{''.join(word.capitalize() for word in self.name.split())}"
 
-    def cast(self):
+    def __post_init__(self):
         pass
+
+    def __repr__(self) -> str:
+        return (
+            f"ButtonConfig(\n"
+            f"    name='{self.name}',\n"
+            f"    icon='{self.icon}',\n"
+            f"    tip='{self.tip}',\n"
+            f"    endpoint={self.endpoint},\n"
+            f"    prompt='{self.prompt}',\n"
+            f"    keys={repr(self.keys)},\n"
+            f"    label='{self.label}'\n"
+            f")"
+        )
 
 
 @dataclass
@@ -48,12 +61,24 @@ class ProfileConfig:
         "You are the world's best language teacher (language: {language})."
     )
 
-    def cast(self):
+    def __post_init__(self):
         self.num_images = int(self.num_images)
         self.max_tokens = int(self.max_tokens)
         self.temperature = float(self.temperature)
 
-        return self
+    def __repr__(self) -> str:
+        return (
+            f"ProfileConfig(\n"
+            f"    name='{self.name}',\n"
+            f"    language='{self.language}',\n"
+            f"    num_images={self.num_images},\n"
+            f"    model='{self.model}',\n"
+            f"    max_tokens={self.max_tokens},\n"
+            f"    temperature={self.temperature},\n"
+            f"    system_prompt='{self.system_prompt}'\n"
+            f")"
+        )
+
 
 @dataclass
 class FieldCompletion:
@@ -61,10 +86,20 @@ class FieldCompletion:
     endpoint: Endpoint = Endpoint.OPENAI
     prompt: str = "{0}"
 
-    def cast(self):
-        return self
+    def __post_init__(self):
+        pass
 
-@dataclass 
+    def __repr__(self) -> str:
+        return (
+            f"FieldCompletion(\n"
+            f"    enabled={self.enabled},\n"
+            f"    endpoint={self.endpoint},\n"
+            f"    prompt='{self.prompt}'\n"
+            f")"
+        )
+
+
+@dataclass
 class NoteTypeTemplate:
     note_type_id: int
     field_completions: Dict[str, FieldCompletion]
@@ -72,12 +107,28 @@ class NoteTypeTemplate:
     @property
     def name(self):
         return mw.col.models.get(self.note_type_id).name
-    
-    def cast(self):
+
+    def __post_init__(self):
         self.note_type_id = int(self.note_type_id)
-        for field_completion in self.field_completions.values():
-            field_completion.cast()
-        return self
+        self.field_completions = {
+            k: (FieldCompletion(**v) if isinstance(v, dict) else v)
+            for k, v in self.field_completions.items()
+        }
+
+    def __repr__(self) -> str:
+        field_completions_str = ",\n".join(
+            f"        '{field}': {completion!r}".replace("\n", "\n        ")
+            for field, completion in self.field_completions.items()
+        )
+        return (
+            f"NoteTypeTemplate(\n"
+            f"    note_type_id={self.note_type_id},\n"
+            f"    field_completions={{\n"
+            f"{field_completions_str}\n"
+            f"    }}\n"
+            f")"
+        )
+
 
 @dataclass
 class Config:
@@ -90,21 +141,31 @@ class Config:
     active_profile_name: str = ""
     note_templates: List[NoteTypeTemplate] = field(default_factory=list)
 
+    def __post_init__(self):
+        self.buttons = [
+            (ButtonConfig(**button) if isinstance(button, dict) else button)
+            for button in self.buttons
+        ]
+        self.profiles = [
+            (ProfileConfig(**profile) if isinstance(profile, dict) else profile)
+            for profile in self.profiles
+        ]
+        self.note_templates = [
+            (
+                NoteTypeTemplate(**note_template)
+                if isinstance(note_template, dict)
+                else note_template
+            )
+            for note_template in self.note_templates
+        ]
+
     @classmethod
     def from_conf(cls):
         conf = mw.addonManager.getConfig("ankisquared") or {}
-
-        button_configs = []
-        for button_conf in conf.get("buttons", None) or []:
-            button_configs.append(ButtonConfig(**button_conf))
-
-        profile_configs = []
-        for profile_conf in conf.get("profiles", None) or []:
-            profile_configs.append(ProfileConfig(**profile_conf))
-
-        if not profile_configs:
-            profile_configs.append(
-                ProfileConfig(
+        profiles = conf.get(
+            "profiles",
+            [
+                dict(
                     name="Default",
                     # Backwards compatibility
                     language=conf.get("language", "en"),
@@ -117,38 +178,39 @@ class Config:
                         "You are the world's best language teacher (language: {language}).",
                     ),
                 )
-            )
-
-        note_templates = []
-        for note_template in conf.get("note_templates", None) or []:
-            field_completions = {k: FieldCompletion(**v) for k, v in note_template.pop("field_completions", {}).items()}
-            note_templates.append(NoteTypeTemplate(**note_template, field_completions=field_completions))
+            ],
+        )
 
         config = cls(
             forvo_api_key=conf.get("forvo_api_key", ""),
             bing_api_key=conf.get("bing_api_key", ""),
             openai_api_key=conf.get("openai_api_key", ""),
-            buttons=button_configs,
-            profiles=profile_configs,
-            active_profile_name=conf.get(
-                "active_profile_name", profile_configs[0].name
-            ),
-            note_templates=note_templates,
+            buttons=conf.get("buttons", []),
+            profiles=profiles,
+            active_profile_name=conf.get("active_profile_name", profiles[0]["name"]),
+            note_templates=conf.get("note_templates", []),
         )
-        config.cast()
+
+        print("Loaded config:")
+        print(config)
         return config
 
     def reset(self):
         conf = asdict(self.from_conf())
         buttons = [ButtonConfig(**button) for button in conf.pop("buttons")]
         profiles = [ProfileConfig(**profile) for profile in conf.pop("profiles")]
-        self.update(**conf, buttons=buttons, profiles=profiles)
-        self.cast()
+        note_templates = [
+            NoteTypeTemplate(**note_template)
+            for note_template in conf.pop("note_templates")
+        ]
+        self.update(
+            **conf, buttons=buttons, profiles=profiles, note_templates=note_templates
+        )
 
     def save_to_conf(self):
-        self.cast()
         conf = mw.addonManager.getConfig("ankisquared") or {}
-        conf.update(asdict(self))
+        config_dict = asdict(self)
+        conf.update(config_dict)
         mw.addonManager.writeConfig("ankisquared", conf)
 
     def update(self, **fields):
@@ -156,18 +218,6 @@ class Config:
             setattr(self, key, value)
 
         self.save_to_conf()
-
-    def cast(self):
-        for button in self.buttons:
-            button.cast()
-
-        for profile in self.profiles:
-            profile.cast()
-
-        for note_template in self.note_templates:
-            note_template.cast()
-
-        return self
 
     def get_active_profile(self):
         return next(
@@ -178,3 +228,34 @@ class Config:
     def set_active_profile(self, profile: ProfileConfig):
         self.active_profile_name = profile.name
         self.save_to_conf()
+
+    def __repr__(self) -> str:
+        buttons_str = ",\n".join(
+            f"        {button!r}".replace("\n", "\n        ") for button in self.buttons
+        )
+        profiles_str = ",\n".join(
+            f"        {profile!r}".replace("\n", "\n        ")
+            for profile in self.profiles
+        )
+        templates_str = ",\n".join(
+            f"        {template!r}".replace("\n", "\n        ")
+            for template in self.note_templates
+        )
+
+        return (
+            f"Config(\n"
+            f"    forvo_api_key='***',\n"
+            f"    bing_api_key='***',\n"
+            f"    openai_api_key='***',\n"
+            f"    buttons=[\n"
+            f"{buttons_str}\n"
+            f"    ],\n"
+            f"    profiles=[\n"
+            f"{profiles_str}\n"
+            f"    ],\n"
+            f"    active_profile_name='{self.active_profile_name}',\n"
+            f"    note_templates=[\n"
+            f"{templates_str}\n"
+            f"    ]\n"
+            f")"
+        )

@@ -21,7 +21,14 @@ from aqt.qt import (
     QScrollArea,
 )
 
-from ankisquared.config import ButtonConfig, Config, Endpoint, FieldCompletion, NoteTypeTemplate, ProfileConfig
+from ankisquared.config import (
+    ButtonConfig,
+    Config,
+    Endpoint,
+    FieldCompletion,
+    NoteTypeTemplate,
+    ProfileConfig,
+)
 from ankisquared.consts import DIFFICULTIES, LANGUAGES
 from ankisquared.gui.utils import get_value
 
@@ -259,10 +266,6 @@ def generate_note_template_tab(config: Config, parent: QWidget = None) -> QWidge
         # If there's no existing template in config, don't create it yet.
         # We'll generate a new one later when saving if needed.
 
-        print([(t.note_type_id, type(t.note_type_id)) for t in config.note_templates])
-        print(note_type_id, type(note_type_id))
-        print(template)
-
         for field in note_type["flds"]:
             field_name = field["name"]
             # Either get an existing FieldCompletion or a blank one
@@ -332,6 +335,7 @@ def generate_note_template_tab(config: Config, parent: QWidget = None) -> QWidge
     main_widget.setLayout(main_layout)
     return main_widget
 
+
 def generate_config_dialog(config: Config):
     dialog = QDialog()
     dialog.setWindowTitle("Settings")
@@ -355,7 +359,6 @@ def generate_config_dialog(config: Config):
     profiles_tab_layout.addWidget(profiles_tab_widget)
     profiles_tab_outer.setLayout(profiles_tab_layout)
     top_tab_widget.addTab(profiles_tab_outer, "Profiles")
-
 
     def on_remove_profile(profile_index, profile_conf):
         config.profiles.pop(profile_index)
@@ -517,7 +520,11 @@ def generate_config_dialog(config: Config):
                 config.note_templates.append(existing_template)
 
             # For each field, read the widgets
-            for field_name, (group_box, endpoint_combo, prompt_widget) in fields_dict.items():
+            for field_name, (
+                group_box,
+                endpoint_combo,
+                prompt_widget,
+            ) in fields_dict.items():
                 enabled = group_box.isChecked()
                 endpoint = endpoint_combo.currentText()
                 prompt = prompt_widget.toPlainText()

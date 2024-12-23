@@ -11,7 +11,7 @@ from aqt.qt import (
     QKeySequence,
 )
 
-from ankisquared.config import ButtonConfig, Config
+from ankisquared.config import ButtonConfig, Config, Endpoint
 from ankisquared.gui.config_dialog import generate_config_dialog
 from ankisquared.gui.utils import (
     get_icon_path,
@@ -45,35 +45,34 @@ def bulk_complete_note(editor: Editor, check=False):
 
     note_type_id = editor.note.mid
     selected_profile = editor.profile_chooser.selected_profile
-    
+
     # Find template for current note type
     template = next(
-        (t for t in editor.config.note_templates 
-         if t.note_type_id == note_type_id), 
-        None
+        (t for t in editor.config.note_templates if t.note_type_id == note_type_id),
+        None,
     )
-    
+
     if not template:
         showWarning("No template configured for this note type!")
         return
 
     # Store original field to restore focus
     original_field = editor.currentField
-    
+
+    # TODO: Do this async
     for field_name, completion in template.field_completions.items():
-        if not completion.enabled:
+        if not completion.enabled or completion.endpoint == Endpoint.OPENAI:
             continue
 
-        from pprint import pprint   
-        flds = editor.note.note_type()['flds']
-        field_idx = next(f for f in flds if f['name'] == field_name)['ord']
+        flds = editor.note.note_type()["flds"]
+        field_idx = next(f for f in flds if f["name"] == field_name)["ord"]
 
         if not field_idx:
             showWarning(f"Could not update {field_name}")
             break
 
         editor.currentField = field_idx
-        
+
         # Reuse existing unified_action logic
         unified_action(
             editor,
@@ -82,11 +81,60 @@ def bulk_complete_note(editor: Editor, check=False):
                 icon="",
                 tip="",
                 endpoint=completion.endpoint,
-                prompt=completion.prompt
+                prompt=completion.prompt,
             ),
-            check=check
+            check=check,
         )
-    
+
+    # OpenAI queries
+    openai_flds = [
+        fn
+        for fn, c in template.field_completions.items()
+        if c.enabled and c.endpoint == Endpoint.OPENAI
+    ]
+    # Merge config fields for the endpoint call
+    config_dict = asdict(editor.config)
+    config_dict.pop("profiles", None)  # Remove profiles list
+
+    # Convert the chosen profile to dict
+    profile_dict = asdict(selected_profile)
+
+    # Merge configurations
+    merged = {**config_dict, **profile_dict}
+
+    if openai_flds:
+        # Build queries dictionary
+        queries = {}
+        for field_name in openai_flds:
+            completion = template.field_completions[field_name]
+            field_names = [field["name"] for field in editor.note.note_type()["flds"]]
+            field_values = [clean_html(f) for f in editor.note.fields]
+            fields_dict = dict(zip(field_names, field_values))
+
+            # Format the prompt with field values
+            query = completion.prompt.format(*field_values, **fields_dict, **merged)
+            queries[field_name] = query
+
+        # Get completions for all fields at once
+        if os.environ.get("DEBUG", "0") == "1":
+            suggestions = {
+                field: Suggestion(type="text", content=f"[Debug OpenAI] {query}")
+                for field, query in queries.items()
+            }
+        else:
+            suggestions = openai.get_completions(queries=queries, **merged)
+
+        # Update each field with its completion
+        for field_name, suggestion in suggestions.items():
+            flds = editor.note.note_type()["flds"]
+            field_idx = next(f for f in flds if f["name"] == field_name)["ord"]
+
+            if not field_idx:
+                showWarning(f"Could not update {field_name}")
+                continue
+
+            update_field(editor, suggestion, field_idx)
+
     # Restore original field focus
     editor.currentField = original_field
 
@@ -208,7 +256,9 @@ def did_load_editor(buttons: list, editor: Editor):
         if len(keys) > 1:
             for key in keys[1:]:
                 fast_shortcut = QShortcut(QKeySequence(key), editor.widget)
-                fast_shortcut.activated.connect(lambda: unified_action(editor, button_config, check=False))
+                fast_shortcut.activated.connect(
+                    lambda: unified_action(editor, button_config, check=False)
+                )
 
         return button
 
@@ -228,7 +278,6 @@ def did_load_editor(buttons: list, editor: Editor):
     # 3) Add the user-configured suggestion buttons
     for btn_config in editor.config.buttons:
         buttons.append(add_button(btn_config, editor))
-
 
     # Add to existing function
     shortcut = QShortcut(QKeySequence("Ctrl+Shift+G"), editor.widget)
