@@ -70,6 +70,8 @@ make install
    - `Ctrl+Shift+4`: Add definition
    - `Ctrl+Shift+5`: Add IPA
 
+See [user_guide.md](docs/user_guide.md) for more information about how to use and customize Anki².
+
 ## Configuration
 
 1. Tools → Add-ons → Anki² → Config

@@ -49,21 +49,7 @@ Settings are managed through a configuration dialog that allows users to:
 
 ## Development Notes
 
-### Adding New Buttons
-
-1. Add button config to `config-template.json`:
-```json
-{
-    "name": "NewButton",
-    "icon": "icon.png",
-    "tip": "Button tooltip",
-    "action_endpoint": "API",
-    "action_prompt": "Prompt template",
-    "keys": "Ctrl+Shift+X"
-}
-```
-
-2. Add API endpoint handling in `unified_action()`
+Add API endpoint handling in `unified_action()`
 
 ### Error Handling
 
