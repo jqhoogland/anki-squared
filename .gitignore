@@ -42,3 +42,5 @@ meta.json
 Thumbs.db
 
 *.ankiaddon
+
+**/rich/**

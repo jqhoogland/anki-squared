@@ -1,10 +1,20 @@
+import os
+import sys
+
+# Add the path to the 'rich' module
+addon_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, addon_dir)
+
 try:
     from rich import print
     from rich.pretty import pprint
-except ImportError:
-    print("Rich not installed, using print & pprint")
+    print("[bold green]Using Rich[/bold green]")
+except ImportError as e:
+    print(f"ImportError: {e}")  # Debugging line
+
     print = print
     from pprint import pprint
+    print("Rich not installed, using print & pprint")
 
 
 def pretty_print_widget(widget, level=0, visited=None):
