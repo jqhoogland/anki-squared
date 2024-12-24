@@ -4,6 +4,7 @@ import requests
 from ankisquared.api.utils import Suggestion
 from aqt.utils import showWarning
 from ankisquared.consts import ModelLiteral
+from ankisquared.utils import print, pprint
 
 OPENAI_API_ENDPOINT = "https://api.openai.com/v1/chat/completions"
 
@@ -124,7 +125,9 @@ def get_completions(
     }
 
     try:
-        print("POST", OPENAI_API_ENDPOINT, data)
+        print(f"[bold green]POST OpenAI[/bold green]")
+        pprint(data)
+        
         response = requests.post(
             "https://api.openai.com/v1/chat/completions",
             headers=headers,
@@ -135,8 +138,8 @@ def get_completions(
             choices = response.json().get("choices", [])
             if choices:
                 content = choices[0].get("message", {}).get("content", "").strip()
-                print("CONTENT")
-                print(content)
+                print("[bold green]Response[/bold green]")
+                pprint(content) 
                 payload = json.loads(content)
 
                 return {
@@ -148,10 +151,10 @@ def get_completions(
                 }
         else:
             showWarning("OpenAI API request failed!")
-            print(f"Error: {response.text}")
+            print(f"[bold red]Error: {response.text}[/bold red]")
 
     except requests.exceptions.RequestException as e:
         showWarning(f"Network error: {str(e)}")
-        print(f"Request failed: {str(e)}")
+        print(f"[bold red]Request failed: {str(e)}[/bold red]")
 
     return Suggestion(type="text", content="")

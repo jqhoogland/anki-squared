@@ -7,6 +7,7 @@ from aqt.editor import Editor
 from aqt.utils import showWarning
 from dataclasses import asdict
 
+
 IconName = Literal[
     "chatgpt.png",
     "definition.png",
@@ -69,6 +70,10 @@ def retrieve_and_escape_url(editor: Editor, url: str) -> str:
         str: Escaped URL string
     """
     url = editor._retrieveURL(url)
+
+    if not url:
+        return ""
+
     return html.escape(url, quote=False)
 
 

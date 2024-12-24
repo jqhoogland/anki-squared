@@ -24,6 +24,7 @@ LANGUAGES = {
     "Chinese": "zh",
     "Dutch": "nl",
     "Greek": "el",
+    "Ancient Greek": "grc",
     "Gujarati": "gu",
     "Hebrew": "he",
     "Hindi": "hi",

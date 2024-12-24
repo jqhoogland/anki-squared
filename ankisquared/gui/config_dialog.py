@@ -1,5 +1,4 @@
 from dataclasses import fields
-from pprint import pprint
 from typing import Dict, Literal, Tuple, get_args, get_origin
 
 from aqt import mw
@@ -19,6 +18,7 @@ from aqt.qt import (
     QGroupBox,
     QScrollArea,
 )
+from ankisquared.utils import print, pprint
 
 from ankisquared.config import (
     ButtonConfig,
@@ -547,7 +547,7 @@ def generate_config_dialog(config: Config):
                 (t for t in config.note_templates if t.note_type_id == note_type_id),
                 None,
             )
-            print(existing_template)
+            print(f"[bold green]existing_template={existing_template}[/bold green]")
             pprint(fields_dict)
             shared_prompt = fields_dict.pop("shared_prompt", "")
 
@@ -574,7 +574,7 @@ def generate_config_dialog(config: Config):
                     prompt=prompt,
                 )
 
-        print("Saving config...")
+        print("[bold green]Saving config...[/bold green]")
         config.save_to_conf()
 
     btn_layout = QHBoxLayout()

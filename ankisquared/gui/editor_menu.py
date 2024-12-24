@@ -21,8 +21,10 @@ from ankisquared.gui.utils import (
     render_button_as_text,
     retrieve_and_escape_url,
 )
-from ankisquared.api import bing, forvo, openai
+from ankisquared.api import bing, forvo, makemeahanzi, openai
 from ankisquared.api.utils import Suggestion
+from ankisquared.utils import print, pprint
+
 
 
 def update_field(editor: Editor, suggestion: Suggestion, current_field: int):
@@ -222,6 +224,8 @@ def get_suggestion(
         suggestion = forvo.get_pronunciations(query, **merged)
     elif endpoint == "OpenAI":
         suggestion = openai.get_completion(query, **merged)
+    elif endpoint == "MakeMeAHanzi":
+        suggestion = makemeahanzi.get_stroke_order(query, **merged)
     else:
         showWarning(f"Unknown endpoint: {endpoint}")
         return None
@@ -238,7 +242,7 @@ def get_suggestion_and_update_current_field(
         return
 
     current_field = editor.currentField
-    print(f"Updating field={current_field} with suggestion={suggestion}")
+    print(f"[bold green]Updating field={current_field} with suggestion={suggestion}[/bold green]")
     update_field(editor, suggestion, current_field)
     return suggestion
 
@@ -253,6 +257,9 @@ def did_load_editor(buttons: list, editor: Editor):
     def on_profile_clicked(profile):
         editor.config.set_active_profile(profile)
         editor.profile_chooser.selected_profile = profile
+
+    if not hasattr(editor.parentWindow, "deck_chooser"):
+        return
 
     topbar = editor.parentWindow.deck_chooser._widget.parent()
 

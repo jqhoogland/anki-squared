@@ -12,6 +12,7 @@ class Endpoint(str, Enum):
     BING = "Bing"
     FORVO = "Forvo"
     OPENAI = "OpenAI"
+    MAKEMEAHANZI = "MakeMeAHanzi"
 
 
 @dataclass

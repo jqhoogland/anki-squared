@@ -5,6 +5,7 @@ import requests
 from ankisquared.consts import LANGUAGES
 from aqt.utils import showWarning
 from ankisquared.api.utils import Suggestion
+from ankisquared.utils import print, pprint
 
 
 BING_API_ENDPOINT = "https://api.bing.microsoft.com/v7.0/images/search"
@@ -63,7 +64,9 @@ def search_bing_images(
         "count": num_results,
     }
 
-    print("GET", BING_API_ENDPOINT, params)
+    print(f"[bold green]GET Bing[/bold green]")
+    pprint(params)
+    
     response = session.get(BING_API_ENDPOINT, headers=headers, params=params)
 
     if response.status_code != 200:
@@ -102,6 +105,8 @@ def get_images(
         setlang = LANGUAGES[language]
     elif language in LANGUAGES.values():
         setlang = language
+    elif language == "grc":
+        setlang = "el"
     else:
         if language:
             showWarning(f"Invalid language: {language} - using default en")

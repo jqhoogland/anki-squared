@@ -1,3 +1,12 @@
+try:
+    from rich import print
+    from rich.pretty import pprint
+except ImportError:
+    print("Rich not installed, using print & pprint")
+    print = print
+    from pprint import pprint
+
+
 def pretty_print_widget(widget, level=0, visited=None):
     """Print a Qt widget hierarchy in YAML format.
 
