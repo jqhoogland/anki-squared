@@ -4,6 +4,8 @@
 
 Anki² is an Anki add-on that enhances card creation by integrating AI and external APIs to provide rich content for flashcards.
 
+See [user_guide.md](user_guide.md) for more information about how to use Anki². 
+
 ## Project Structure
 
 ```

@@ -1,11 +1,12 @@
 import html
 from typing import Literal
 from bs4 import BeautifulSoup
-from ankisquared.config import ButtonConfig, Config, Endpoint
+from ankisquared.config import ButtonConfig, Config, Endpoint, ProfileConfig
 from ankisquared.consts import ICONS_PATH
 from aqt.editor import Editor
 from aqt.utils import showWarning
 from dataclasses import asdict
+
 
 IconName = Literal[
     "chatgpt.png",
@@ -69,11 +70,44 @@ def retrieve_and_escape_url(editor: Editor, url: str) -> str:
         str: Escaped URL string
     """
     url = editor._retrieveURL(url)
+
+    if not url:
+        return ""
+
     return html.escape(url, quote=False)
 
 
-def render_button_as_text(button_config: ButtonConfig, config: Config) -> str:
+def render_button_as_text(
+    button_config: ButtonConfig, profile_config: ProfileConfig
+) -> str:
+    profile_dict = asdict(profile_config)
+    profile_dict["profile_name"] = profile_dict.pop("name")
+
     if button_config.endpoint == Endpoint.OPENAI:
-        return f"System Prompt ({config.model}): \n\n{config.system_prompt.format(**asdict(config), **asdict(button_config))}"
+        return f"System Prompt ({profile_config.model}): \n\n{profile_config.system_prompt.format(**profile_dict, **asdict(button_config))}"
     else:
-        return button_config.tip
+        return button_config.tip + (
+            f"(Language: {profile_config.language})" if profile_config.language else ""
+        )
+
+
+def get_value(widget):
+    """
+    Helper function to retrieve a value from a widget in a unified manner.
+    """
+    if hasattr(widget, "currentIndex"):
+        if hasattr(widget, "itemData"):
+            value = widget.itemData(widget.currentIndex())
+
+            if value is not None:
+                return value
+
+    if hasattr(widget, "text"):
+        return widget.text()
+    elif hasattr(widget, "toPlainText"):
+        return widget.toPlainText()
+    elif hasattr(widget, "currentText"):
+        return widget.currentText()
+    elif hasattr(widget, "value"):
+        return widget.value()
+    raise ValueError(f"No value attribute found for widget {widget}")

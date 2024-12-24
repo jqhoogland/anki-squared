@@ -1,4 +1,5 @@
 import requests
+from ankisquared.utils import print, pprint
 
 from ankisquared.api.utils import Suggestion
 
@@ -34,6 +35,8 @@ def get_pronunciations(
     )
 
     try:
+        print(f"[bold green]GET Forvo[/bold green]")
+        pprint({"word": query, "language": language, "max_pronunciations": max_pronunciations})
         response = requests.get(base_url, headers=headers)
 
         if response.status_code == 200:
@@ -45,10 +48,10 @@ def get_pronunciations(
 
             return Suggestion(type="sound", urls=urls)
         else:
-            print(f"Forvo API request failed with status {response.status_code}")
-            print(f"Error: {response.text}")
+            print(f"[bold red]Forvo API request failed with status {response.status_code}[/bold red]")
+            print(f"[bold red]Error: {response.text}[/bold red]")
 
     except requests.exceptions.RequestException as e:
-        print(f"Request failed: {str(e)}")
+        print(f"[bold red]Request failed: {str(e)}[/bold red]")
 
     return []

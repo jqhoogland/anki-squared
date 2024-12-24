@@ -25,7 +25,7 @@ class Suggestion:
 
         if self.type == "image":
             urls = [url_retriever(url) for url in (self.urls or [])]
-            return "<br />".join(f'<img src="{url}" />' for url in urls)
+            return "".join(f'<img src="{url}" />' for url in urls)
 
         if self.type == "sound":
             url = url_retriever(self.urls[0]) if self.urls else ""

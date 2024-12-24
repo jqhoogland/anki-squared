@@ -1,7 +1,9 @@
 [project]
 name = "anki-squared"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.2.0"
+description = "Anki add-on that enhances card creation by integrating AI and external APIs to provide rich content for flashcards."
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "rich",
+]
